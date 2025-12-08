@@ -1,0 +1,233 @@
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { Input } from "@/components/ui/input";
+import { useAppStore } from "@/lib/hooks/useAppStore";
+import { useListing } from "@/lib/hooks/useListing";
+import { Payment } from "@getalby/bitcoin-connect-react";
+import { Loader2Icon } from "lucide-react";
+import { nip19 } from "nostr-tools";
+import React from "react";
+import { useParams } from "react-router-dom";
+import { toast } from "sonner";
+
+export function ListingPage() {
+  const token = useAppStore((store) => store.token);
+  const { id } = useParams() as { id: string };
+  const { data: listing } = useListing(id);
+  const [bidAmount, setBidAmount] = React.useState("");
+  const [bidDrawerOpen, setBidDrawerOpen] = React.useState(false);
+  const [creatingBid, setCreatingBid] = React.useState(false);
+  const [invoice, setInvoice] = React.useState("");
+  const [bidId, setBidId] = React.useState("");
+
+  React.useEffect(() => {
+    if (bidId && listing?.bids.some((bid) => bid.id === bidId)) {
+      toast("Bid placed successfully.");
+      setBidId("");
+      setInvoice("");
+      setBidDrawerOpen(false);
+    }
+  }, [bidId, listing]);
+
+  if (!listing) {
+    return null;
+  }
+
+  async function createBid(e: React.FormEvent) {
+    e.preventDefault();
+    setCreatingBid(true);
+    try {
+      const response = await fetch(`/api/listings/${id}/bids`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount: parseInt(bidAmount),
+        }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      const { invoice, id: bidId } = await response.json();
+      setInvoice(invoice);
+      setBidId(bidId);
+      alert(
+        "This is a HOLD invoice. Pay it with your wallet and then return to this page and wait for your bid to be updated."
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to create bid: ", {
+        description: "" + error,
+      });
+    }
+    setCreatingBid(false);
+  }
+
+  return (
+    <div className="p-4">
+      <Card className="">
+        <CardContent>
+          <img
+            src={listing.imageUrl || "/icon.svg"}
+            className="w-64 h-64 object-cover"
+          />
+        </CardContent>
+        <CardHeader>
+          <CardTitle>{listing.title}</CardTitle>
+          <CardDescription>
+            {listing.description || "No description provided"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-between items-center">
+          <CardDescription>
+            <span className="font-mono">{listing.currentPrice}</span> sats
+          </CardDescription>
+          <CardDescription>
+            <span className="font-mono">{listing.bids.length}</span> bids
+          </CardDescription>
+        </CardContent>
+        {listing.endsAt && !listing.endedAt && (
+          <CardContent className="flex justify-center">
+            <p className="font-semibold text-xs">
+              Ending in {Math.floor((listing.endsAt - Date.now()) / 1000 / 60)}{" "}
+              minutes
+            </p>
+          </CardContent>
+        )}
+        <CardFooter>
+          <Drawer
+            open={bidDrawerOpen}
+            onOpenChange={() => {
+              setBidDrawerOpen(false);
+            }}
+          >
+            {!listing.endedAt && (
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setBidDrawerOpen(true);
+                  setBidAmount((listing.currentPrice + 1).toString());
+                }}
+              >
+                Bid Now
+              </Button>
+            )}
+            {listing.endedAt && (
+              <div>
+                <Button disabled>Auction Ended</Button>
+                {listing.winnerPubkey && (
+                  <p className="break-all">
+                    Winner: {nip19.npubEncode(listing.winnerPubkey)}
+                  </p>
+                )}
+                {listing.pin && (
+                  <div className="mt-4">
+                    <p>You won!</p>
+                    <p>
+                      Send this pin {listing.pin} to your counterparty to prove
+                      your purchase and co-ordinate delivery.
+                    </p>
+                    <p className="break-all">
+                      Seller npub: {nip19.npubEncode(listing.sellerPubkey)}
+                    </p>
+                    {listing.sellerContactInfo && (
+                      <p>Seller contact info: {listing.sellerContactInfo}</p>
+                    )}
+                    {listing.winnerPubkey && (
+                      <p className="break-all">
+                        Winner npub: {nip19.npubEncode(listing.winnerPubkey)}
+                      </p>
+                    )}
+                    {listing.winnerContactInfo && (
+                      <p>Winner contact info: {listing.winnerContactInfo}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+            <DrawerContent>
+              {!invoice && !creatingBid && (
+                <form onSubmit={createBid}>
+                  <div className="mx-auto w-full max-w-sm">
+                    <DrawerHeader>
+                      <DrawerTitle>Enter Bid</DrawerTitle>
+                      <DrawerDescription>
+                        Set the amount in sats you'd like to bid
+                      </DrawerDescription>
+                    </DrawerHeader>
+                    <div className="p-4 pb-0">
+                      <div className="flex gap-4">
+                        {[10, 50, 100].map((value) => (
+                          <Button
+                            key={value}
+                            className="flex-1 w-full h-full aspect-[1/1] text-[150%] font-medium font-mono"
+                            type="button"
+                            variant="secondary"
+                            onClick={() =>
+                              setBidAmount(
+                                Math.ceil(
+                                  parseInt(bidAmount) * (1 + value / 100)
+                                ).toString()
+                              )
+                            }
+                          >
+                            +{value}%
+                          </Button>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-center space-x-2 mt-4">
+                        <div className="flex-1 text-center">
+                          <Input
+                            type="number"
+                            autoFocus
+                            value={bidAmount}
+                            onChange={(e) => setBidAmount(e.target.value)}
+                            className="!text-2xl h-14 font-mono"
+                            min={listing.currentPrice + 1}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <DrawerFooter>
+                      <Button className="h-14 text-lg font-medium">
+                        PLACE BID
+                      </Button>
+                    </DrawerFooter>
+                  </div>
+                </form>
+              )}
+              {creatingBid && (
+                <div className="w-full h-32 flex items-center justify-center">
+                  <Loader2Icon className="animate-spin" />
+                </div>
+              )}
+              {invoice && (
+                <div className="p-4">
+                  <Payment invoice={invoice} />
+                </div>
+              )}
+            </DrawerContent>
+          </Drawer>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}

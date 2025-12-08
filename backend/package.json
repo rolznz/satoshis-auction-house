@@ -1,0 +1,31 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "dev": "nodemon --watch src --ext ts --exec tsx src/server.ts",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@fastify/jwt": "^10.0.0",
+    "@fastify/static": "^8.3.0",
+    "@getalby/sdk": "^7.0.0",
+    "@prisma/client": "6.6.0",
+    "fastify": "^5.6.2",
+    "jsonwebtoken": "^9.0.3",
+    "websocket-polyfill": "0.0.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
+    "nodemon": "^3.1.11",
+    "prisma": "6.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
