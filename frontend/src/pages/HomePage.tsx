@@ -41,9 +41,9 @@ export function HomePage() {
                 </CardDescription>
               </CardContent>
               {listing.endsAt && (
-                <CardContent className="flex justify-center">
+                <CardContent className="flex justify-center -mt-6 -mb-4">
                   <p className="font-semibold text-xs">
-                    Ending in{" "}
+                    Ends in{" "}
                     {Math.floor((listing.endsAt - Date.now()) / 1000 / 60)}{" "}
                     minutes
                   </p>

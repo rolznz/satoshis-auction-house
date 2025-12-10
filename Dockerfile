@@ -40,6 +40,8 @@ RUN cd backend && yarn install --production --frozen-lockfile
 
 # Copy built backend code from the backend-builder stage
 COPY --from=backend-builder /app/backend/dist ./backend/dist
+# Copy the generated prisma files
+COPY --from=backend-builder /app/backend/src/generated/prisma ./backend/src/generated/prisma
 
 # Copy built frontend assets from the frontend-builder stage
 # The backend expects these relative to its own location after build
@@ -52,4 +54,4 @@ COPY backend/prisma ./backend/prisma/
 EXPOSE 3001
 
 # Command to run the backend server
-CMD cd backend && yarn db:migrate && yarn start:prod
+CMD cd backend && yarn db:migrate:prod && yarn start

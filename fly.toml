@@ -1,4 +1,4 @@
-# fly.toml app configuration file generated for satoshis-auction-house on 2025-04-16T18:03:45+02:00
+# fly.toml app configuration file generated for satoshis-auction-house on 2025-12-10T12:25:37+07:00
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
@@ -9,8 +9,13 @@ primary_region = 'fra'
 [build]
 
 [env]
-  BASE_URL = 'https://satoshis-auction-house.fly.dev'
+  BASE_URL = 'https://satoshisauction.house'
   DATABASE_URL = 'file:/data/satoshis-auction-house.db'
+
+[[mounts]]
+  source = 'satoshis_auction_house_data'
+  destination = '/data'
+  initial_size = '1'
 
 [http_service]
   internal_port = 3001
@@ -27,12 +32,7 @@ primary_region = 'fra'
     method = 'GET'
     path = '/ping'
 
-[mounts]
-  source = "satoshis_auction_house_data"
-  destination = "/data"
-  initial_size = '1'
-
 [[vm]]
-  memory = '1gb'
+  memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1
