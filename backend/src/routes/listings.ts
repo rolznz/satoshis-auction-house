@@ -269,11 +269,8 @@ function mapListing(
     endedAt: listing.endedAt,
     endsAt: listing.endsAt
       ? listing.endsAt
-      : listing.bids.length
-      ? Math.max(
-          ...listing.bids.map((bid) => bid.settleDeadline?.getTime() || 0)
-        )
-      : undefined,
+      : listing.bids.find((bid) => bid.held)?.settleDeadline?.getTime(),
+    endsAtBlock: listing.bids.find((bid) => bid.held)?.settleDeadlineBlocks,
     public: listing.public,
     bids: listing.bids.map((bid) => {
       return {

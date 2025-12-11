@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import path from "path";
 import { PrismaClient } from "./generated/prisma/client";
 import { NWCConnectionManager } from "./lib/NWCConnectionManager";
+import { getSettleDeadlineFromCurrentBlockHeight } from "./lib/utils";
 import { listingRoutes } from "./routes/listings";
 import { userRoutes } from "./routes/users";
 
@@ -61,10 +62,42 @@ const start = async () => {
       }
     }
 
+    fastify.log.info("Monitoring listings...");
     (async () => {
       // check for leading bids that have expired and end the listings
-      while (true) {
-        await new Promise((resolve) => setTimeout(resolve, 60_000));
+      for (let i = 0; ; i++) {
+        if (i > 0) {
+          // don't sleep on first run
+          await new Promise((resolve) => setTimeout(resolve, 60_000));
+        }
+
+        let blockHeightResponse = await fetch(
+          "https://mempool.space/api/blocks/tip/height"
+        );
+        if (!blockHeightResponse.ok) {
+          console.error("Failed to get block height from mempool.space");
+          blockHeightResponse = await fetch(
+            "https://blockstream.info/api/blocks/tip/height"
+          );
+
+          if (!blockHeightResponse.ok) {
+            console.error("Failed to get block height from blockstream.info");
+            continue;
+          }
+        }
+        const blockHeightText = await blockHeightResponse.text();
+        const blockHeight = parseInt(blockHeightText);
+        if (
+          !blockHeight ||
+          isNaN(blockHeight) ||
+          blockHeight < 900_000 ||
+          blockHeight > 9_000_000
+        ) {
+          console.error("Unexpected block height: ", blockHeightText);
+          continue;
+        }
+        connectionManager.setBlockHeight(blockHeight);
+
         const activeListings = await prisma.listing.findMany({
           where: {
             endedAt: null,
@@ -91,8 +124,26 @@ const start = async () => {
             });
             continue;
           }
-          if (heldBid.settleDeadline.getTime() > Date.now()) {
-            console.log("Highest bid not expired yet", { bidId: heldBid.id });
+          let settleDeadline = heldBid.settleDeadline;
+          // update settle deadline
+          if (heldBid.settleDeadlineBlocks) {
+            settleDeadline = getSettleDeadlineFromCurrentBlockHeight(
+              heldBid.settleDeadlineBlocks,
+              blockHeight
+            );
+
+            await prisma.bid.update({
+              where: {
+                id: heldBid.id,
+              },
+              data: {
+                settleDeadline,
+              },
+            });
+          }
+
+          if (settleDeadline.getTime() > Date.now()) {
+            console.log("Highest bid not expired yet", { bid_id: heldBid.id });
             continue;
           }
           console.log(
@@ -100,7 +151,7 @@ const start = async () => {
             {
               bidId: heldBid.id,
               listingId: heldBid.listingId,
-              settleDeadline: heldBid.settleDeadline.getTime(),
+              settleDeadline: settleDeadline.getTime(),
               now: Date.now(),
             }
           );

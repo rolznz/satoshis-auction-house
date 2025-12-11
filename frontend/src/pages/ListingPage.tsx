@@ -106,8 +106,20 @@ export function ListingPage() {
         {listing.endsAt && !listing.endedAt && (
           <CardContent className="flex justify-center">
             <p className="font-semibold text-xs">
-              Ending in {Math.floor((listing.endsAt - Date.now()) / 1000 / 60)}{" "}
-              minutes
+              Ends in ~{Math.floor((listing.endsAt - Date.now()) / 1000 / 60)}{" "}
+              minutes{" "}
+              {listing.endsAtBlock && (
+                <span>
+                  at{" "}
+                  <a
+                    href="https://mempool.space"
+                    target="_blank"
+                    className="underline"
+                  >
+                    block {listing.endsAtBlock}
+                  </a>
+                </span>
+              )}
             </p>
           </CardContent>
         )}

@@ -1,5 +1,6 @@
 import { Nip47Notification, NWCClient } from "@getalby/sdk";
 import { PrismaClient } from "../generated/prisma";
+import { getSettleDeadlineFromCurrentBlockHeight } from "./utils";
 
 export class NWCConnectionManager {
   private _connections: Record<
@@ -7,9 +8,15 @@ export class NWCConnectionManager {
     { client: NWCClient; unsub: () => void }
   >;
   private _prisma: PrismaClient;
+  private _blockHeight: number;
   constructor(prisma: PrismaClient) {
     this._connections = {};
     this._prisma = prisma;
+    this._blockHeight = 0;
+  }
+
+  setBlockHeight(blockHeight: number) {
+    this._blockHeight = blockHeight;
   }
 
   getConnection(receiveOnlyConnectionSecret: string) {
@@ -35,7 +42,32 @@ export class NWCConnectionManager {
     });
 
     const onNotification = async (notification: Nip47Notification) => {
+      while (!this._blockHeight) {
+        console.error("received notification while not ready yet");
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+      }
+
+      const bid = await this._prisma.bid.findUnique({
+        where: {
+          paymentHash: notification.notification.payment_hash,
+        },
+      });
+      if (!bid) {
+        // NOTE: you should use an isolated app connection
+        console.warn("Received hold invoice unrelated to this app", {
+          payment_hash: notification.notification.payment_hash,
+        });
+        return;
+      }
       console.info("hold invoice accepted", notification);
+
+      if (!notification.notification.settle_deadline) {
+        await client.cancelHoldInvoice({
+          payment_hash: notification.notification.payment_hash,
+        });
+        console.info("Cancelled bid due to no settle deadline", { id: bid.id });
+        return;
+      }
 
       try {
         const updatedBid = await this._prisma.bid.update({
@@ -48,8 +80,12 @@ export class NWCConnectionManager {
           data: {
             paid: true,
             held: true,
-            // FIXME: use real settle deadline
-            settleDeadline: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+
+            settleDeadline: getSettleDeadlineFromCurrentBlockHeight(
+              notification.notification.settle_deadline,
+              this._blockHeight
+            ),
+            settleDeadlineBlocks: notification.notification.settle_deadline,
           },
         });
 
@@ -57,7 +93,10 @@ export class NWCConnectionManager {
           await client.cancelHoldInvoice({
             payment_hash: updatedBid.paymentHash,
           });
-          console.info("Cancelled bid after auction ended", updatedBid.amount);
+          console.info("Cancelled bid after auction ended", {
+            id: bid.id,
+            amount: updatedBid.amount,
+          });
           return;
         }
 

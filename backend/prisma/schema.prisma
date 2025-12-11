@@ -45,19 +45,20 @@ model Listing {
 }
 
 model Bid {
-  id             String    @id @default(uuid())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  bidder         User      @relation(fields: [bidderId], references: [id])
-  bidderId       String
-  listing        Listing   @relation(fields: [listingId], references: [id])
-  listingId      String
-  invoice        String    @unique
-  preimage       String    @unique
-  paymentHash    String    @unique
-  settleDeadline DateTime?
-  amount         Int
-  paid           Boolean
-  held           Boolean
-  settled        Boolean
+  id                   String    @id @default(uuid())
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  bidder               User      @relation(fields: [bidderId], references: [id])
+  bidderId             String
+  listing              Listing   @relation(fields: [listingId], references: [id])
+  listingId            String
+  invoice              String    @unique
+  preimage             String    @unique
+  paymentHash          String    @unique
+  settleDeadline       DateTime?
+  settleDeadlineBlocks Int?
+  amount               Int
+  paid                 Boolean
+  held                 Boolean
+  settled              Boolean
 }
