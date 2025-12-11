@@ -25,23 +25,25 @@ model User {
 }
 
 model Listing {
-  id          String    @id @default(uuid())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  title       String
-  description String?
-  imageUrl    String?
-  seller      User      @relation("SellerListings", fields: [sellerId], references: [id])
-  sellerId    String
-  winner      User?     @relation("WinnerListings", fields: [winnerId], references: [id])
-  winnerId    String?
-  startingBid Int
-  startsAt    DateTime? // restrict when bidding can start, optional
-  endedAt     DateTime? // once winning invoice is settled or when endsAt is hit
-  endsAt      DateTime? // hard cut off, optional
-  public      Boolean
-  bids        Bid[]
-  pin         String // shared with winner and seller once the auction ends
+  id                   String    @id @default(uuid())
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  title                String
+  description          String?
+  imageUrl             String?
+  seller               User      @relation("SellerListings", fields: [sellerId], references: [id])
+  sellerId             String
+  winner               User?     @relation("WinnerListings", fields: [winnerId], references: [id])
+  winnerId             String?
+  startingBid          Int
+  minimumBidAbsolute   Int?
+  minimumBidPercentage Int?
+  startsAt             DateTime? // restrict when bidding can start, optional
+  endedAt              DateTime? // once winning invoice is settled or when endsAt is hit
+  endsAt               DateTime? // hard cut off, optional
+  public               Boolean
+  bids                 Bid[]
+  pin                  String // shared with winner and seller once the auction ends
 }
 
 model Bid {

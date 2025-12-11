@@ -172,8 +172,8 @@ export function ListingPage() {
                         return;
                       }
                     }
+                    setBidAmount(listing.nextBidAmount.toString());
                     setBidDrawerOpen(true);
-                    setBidAmount((listing.currentPrice + 1).toString());
                   }}
                 >
                   Bid Now
@@ -259,7 +259,7 @@ export function ListingPage() {
                             value={bidAmount}
                             onChange={(e) => setBidAmount(e.target.value)}
                             className="!text-2xl h-14 font-mono"
-                            min={listing.currentPrice + 1}
+                            min={listing.nextBidAmount}
                           />
                         </div>
                       </div>

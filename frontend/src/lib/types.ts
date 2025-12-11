@@ -17,7 +17,8 @@ export type Listing = {
   imageUrl?: string;
   sellerPubkey: string;
   winnerPubkey?: string;
-  startingBid?: number;
+  startingBidAmount: number;
+  nextBidAmount: number;
   startsAt?: number;
   endedAt?: number;
   endsAt?: number;

@@ -6,6 +6,7 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
+  FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,6 +32,9 @@ export function NewListingPage() {
   const [startingBid, setStartingBid] = React.useState("");
   const [isPublic, setPublic] = React.useState(true);
   const [hasFixedEndDate, setFixedEndDate] = React.useState(false);
+  const [hasMinimumNextBid, setHasMinimumNextBid] = React.useState(false);
+  const [minimumBidAbsolute, setMinimumBidAbsolute] = React.useState("");
+  const [minimumBidPercentage, setMinimumBidPercentage] = React.useState("");
   const [datePickerOpen, setDatePickerOpen] = React.useState(false);
   const [endsAt, setEndsAt] = React.useState<Date>(new Date());
 
@@ -57,6 +61,12 @@ export function NewListingPage() {
           startingBid: parseInt(startingBid),
           public: isPublic,
           endsAt: hasFixedEndDate ? endsAt.getTime() : undefined,
+          minimumBidAbsolute: hasMinimumNextBid
+            ? parseInt(minimumBidAbsolute)
+            : undefined,
+          minimumBidPercentage: hasMinimumNextBid
+            ? parseInt(minimumBidPercentage)
+            : undefined,
         }),
         headers: {
           Authorization: `Bearer ${token}`,
@@ -118,6 +128,7 @@ export function NewListingPage() {
               Upload an image somewhere and paste the URL here
             </FieldDescription>
           </Field>
+          <FieldSeparator />
           <Field>
             <FieldLabel htmlFor="starting-bid">
               Starting Bid (in sats)
@@ -134,6 +145,62 @@ export function NewListingPage() {
               value
             </FieldDescription>
           </Field>
+          <Field>
+            <Field orientation="horizontal">
+              <Checkbox
+                id="fixed-end-date"
+                checked={hasMinimumNextBid}
+                onCheckedChange={(e) => setHasMinimumNextBid(!!e)}
+              />
+              <FieldLabel htmlFor="fixed-end-date" className="font-normal">
+                Minimum Next Bid
+              </FieldLabel>
+            </Field>
+            <FieldDescription className="!text-wrap">
+              Set minimum next bid amount to avoid auction extending too long
+            </FieldDescription>
+          </Field>
+
+          {hasMinimumNextBid && (
+            <>
+              <Field>
+                <FieldLabel htmlFor="minimum-absolute">
+                  Minimum Bid Absolute Value (in sats)
+                </FieldLabel>
+                <Input
+                  id="minimum-absolute"
+                  placeholder="1000"
+                  type="number"
+                  required
+                  value={minimumBidAbsolute}
+                  onChange={(e) => setMinimumBidAbsolute(e.target.value)}
+                />
+                <FieldDescription>
+                  Each bid must be at least this amount of sats above the
+                  previous bid
+                </FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="minimum-absolute">
+                  Minimum Bid Percentage Value
+                </FieldLabel>
+                <Input
+                  id="minimum-absolute"
+                  placeholder="1"
+                  type="number"
+                  required
+                  value={minimumBidPercentage}
+                  onChange={(e) => setMinimumBidPercentage(e.target.value)}
+                />
+                <FieldDescription>
+                  Each bid must be at least this % above the previous bid
+                </FieldDescription>
+              </Field>
+            </>
+          )}
+
+          <FieldSeparator />
+
           <Field>
             <Field orientation="horizontal">
               <Checkbox

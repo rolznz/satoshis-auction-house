@@ -15,6 +15,8 @@ type NewListing = {
   startingBid?: number;
   public: boolean;
   endsAt?: number;
+  minimumBidAbsolute?: string;
+  minimumBidPercentage?: string;
 };
 
 type NewBid = {
@@ -69,6 +71,12 @@ export async function listingRoutes(
             endsAt: newListing.endsAt ? new Date(newListing.endsAt) : undefined,
             sellerId: user.id,
             pin: generatePin(),
+            minimumBidAbsolute: newListing.minimumBidAbsolute
+              ? parseInt(newListing.minimumBidAbsolute)
+              : undefined,
+            minimumBidPercentage: newListing.minimumBidPercentage
+              ? parseInt(newListing.minimumBidPercentage)
+              : undefined,
           },
         });
 
@@ -176,8 +184,29 @@ export async function listingRoutes(
           },
           include: {
             seller: true,
+            bids: {
+              where: {
+                paid: true,
+              },
+            },
           },
         });
+
+        // TODO: extract duplicated code
+        let nextBidAmount = listing.startingBid;
+        const heldBid = listing.bids.find((bid) => bid.held);
+        if (heldBid) {
+          nextBidAmount = Math.max(
+            heldBid.amount + Math.max(1, listing.minimumBidAbsolute || 0),
+            Math.ceil(
+              heldBid.amount * (1 + (listing.minimumBidPercentage ?? 100) / 100)
+            )
+          );
+        }
+
+        if (request.body.amount < nextBidAmount) {
+          return reply.code(400).send({ message: "Bid amount is too low" });
+        }
 
         const bidder = await options.prisma.user.findUniqueOrThrow({
           where: {
@@ -271,6 +300,17 @@ function mapListing(
     endsInMinutes = Math.ceil((endsAt - Date.now()) / 1000 / 60);
   }
 
+  let nextBidAmount = listing.startingBid;
+  const heldBid = listing.bids.find((bid) => bid.held);
+  if (heldBid) {
+    nextBidAmount = Math.max(
+      heldBid.amount + Math.max(1, listing.minimumBidAbsolute || 0),
+      Math.ceil(
+        heldBid.amount * (1 + (listing.minimumBidPercentage ?? 100) / 100)
+      )
+    );
+  }
+
   return {
     id: listing.id,
     createdAt: listing.createdAt.getTime(),
@@ -284,11 +324,12 @@ function mapListing(
     imageUrl: listing.imageUrl,
     sellerPubkey: listing.seller.pubkey,
     winnerPubkey: listing.winner?.pubkey,
-    startingBid: listing.startingBid,
+    startingBidAmount: listing.startingBid,
+    nextBidAmount,
     startsAt: listing.startsAt,
     endedAt: listing.endedAt,
     endsAt,
-    endsAtBlock: listing.bids.find((bid) => bid.held)?.settleDeadlineBlocks,
+    endsAtBlock: heldBid?.settleDeadlineBlocks,
     endsInMinutes,
     public: listing.public,
     bids: listing.bids.map((bid) => {
