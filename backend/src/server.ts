@@ -71,29 +71,34 @@ const start = async () => {
           await new Promise((resolve) => setTimeout(resolve, 60_000));
         }
 
-        let blockHeightResponse = await fetch(
-          "https://mempool.space/api/blocks/tip/height"
-        );
-        if (!blockHeightResponse.ok) {
-          console.error("Failed to get block height from mempool.space");
-          blockHeightResponse = await fetch(
-            "https://blockstream.info/api/blocks/tip/height"
+        let blockHeight = 0;
+        try {
+          let blockHeightResponse = await fetch(
+            "https://mempool.space/api/blocks/tip/height"
           );
-
           if (!blockHeightResponse.ok) {
-            console.error("Failed to get block height from blockstream.info");
-            continue;
+            console.error("Failed to get block height from mempool.space");
+            blockHeightResponse = await fetch(
+              "https://blockstream.info/api/blocks/tip/height"
+            );
+
+            if (!blockHeightResponse.ok) {
+              console.error("Failed to get block height from blockstream.info");
+              continue;
+            }
           }
-        }
-        const blockHeightText = await blockHeightResponse.text();
-        const blockHeight = parseInt(blockHeightText);
-        if (
-          !blockHeight ||
-          isNaN(blockHeight) ||
-          blockHeight < 900_000 ||
-          blockHeight > 9_000_000
-        ) {
-          console.error("Unexpected block height: ", blockHeightText);
+          const blockHeightText = await blockHeightResponse.text();
+          blockHeight = parseInt(blockHeightText);
+          if (
+            !blockHeight ||
+            isNaN(blockHeight) ||
+            blockHeight < 900_000 ||
+            blockHeight > 9_000_000
+          ) {
+            throw new Error("Unexpected block height: " + blockHeightText);
+          }
+        } catch (error) {
+          console.error("failed to fetch block height", error);
           continue;
         }
         connectionManager.setBlockHeight(blockHeight);
