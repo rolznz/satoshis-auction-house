@@ -47,6 +47,14 @@ export function Header() {
               <DropdownMenuItem asChild>
                 <Link to="/settings">Settings</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href="https://github.com/rolznz/satoshis-auction-house"
+                  target="_blank"
+                >
+                  About
+                </a>
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   logout();

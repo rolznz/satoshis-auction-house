@@ -63,4 +63,5 @@ model Bid {
   paid                 Boolean
   held                 Boolean
   settled              Boolean
+  comment              String?
 }

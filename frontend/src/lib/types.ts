@@ -5,6 +5,7 @@ export type Bid = {
   updatedAt: number;
   amount: number;
   settled: boolean;
+  comment?: string;
 };
 
 export type Listing = {

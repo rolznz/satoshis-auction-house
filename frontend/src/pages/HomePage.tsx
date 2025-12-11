@@ -80,7 +80,10 @@ function ListingCard({ listing }: { listing: Listing }) {
         </CardHeader>
         <CardContent className="flex justify-between items-center">
           <CardDescription>
-            <span className="font-mono">{listing.currentPrice}</span> sats
+            <span className="font-mono">
+              {new Intl.NumberFormat().format(listing.currentPrice)}
+            </span>{" "}
+            sats
           </CardDescription>
           <CardDescription>
             <span className="font-mono">{listing.bids.length}</span> bids

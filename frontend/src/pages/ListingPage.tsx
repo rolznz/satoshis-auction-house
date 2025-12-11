@@ -52,6 +52,7 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
   const token = useAppStore((store) => store.token);
 
   const [bidAmount, setBidAmount] = React.useState("");
+  const [bidComment, setBidComment] = React.useState("");
   const [bidDrawerOpen, setBidDrawerOpen] = React.useState(false);
   const [creatingBid, setCreatingBid] = React.useState(false);
   const [placedBidId, setPlacedBidId] = React.useState("");
@@ -91,6 +92,7 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
         method: "POST",
         body: JSON.stringify({
           amount: parseInt(bidAmount),
+          comment: bidComment,
         }),
         headers: {
           Authorization: `Bearer ${token}`,
@@ -129,7 +131,7 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
 
   return (
     <div className="p-4 flex flex-1 flex-wrap w-full gap-4">
-      <Card className="flex-1">
+      <Card className="flex-1 rounded-md">
         <CardContent className="flex items-start justify-between">
           <img
             src={listing.imageUrl || "/icon.svg"}
@@ -342,6 +344,16 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
                           />
                         </div>
                       </div>
+                      <div className="flex items-center justify-center space-x-2 mt-4">
+                        <div className="flex-1 text-center">
+                          <Input
+                            value={bidComment}
+                            onChange={(e) => setBidComment(e.target.value)}
+                            placeholder="Enter a comment"
+                            maxLength={100}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <DrawerFooter>
@@ -389,10 +401,15 @@ function BidItem({ bid, leading }: { bid: Bid; leading: boolean }) {
       <ItemContent>
         <ItemTitle className="flex justify-between items-center w-full">
           <span>
-            {bidderNostrProfile?.name || "Evil Rabbit"} - {bid.amount} sats
+            {bidderNostrProfile?.name || "Evil Rabbit"} ⚡{" "}
+            <span className="font-mono text-lg">
+              {new Intl.NumberFormat().format(bid.amount)}
+            </span>{" "}
+            sats
           </span>
           {leading && <Badge>Leading</Badge>}
         </ItemTitle>
+        {bid.comment && <ItemDescription>{bid.comment}</ItemDescription>}
         <ItemDescription>
           {formatDistance(bid.createdAt, new Date(), {
             addSuffix: true,
@@ -424,7 +441,11 @@ function Winner({ winnerPubkey, bid }: { winnerPubkey: string; bid: Bid }) {
         </ItemMedia>
         <ItemContent>
           <ItemTitle>
-            {winnerNostrProfile?.name || "Evil Rabbit"} - {bid.amount} sats
+            {winnerNostrProfile?.name || "Evil Rabbit"} ⚡{" "}
+            <span className="font-mono text-lg">
+              {new Intl.NumberFormat().format(bid.amount)}
+            </span>{" "}
+            sats
           </ItemTitle>
           <ItemDescription>
             {formatDistance(bid.createdAt, new Date(), {

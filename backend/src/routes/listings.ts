@@ -21,6 +21,7 @@ type NewListing = {
 
 type NewBid = {
   amount: number;
+  comment?: string;
 };
 
 interface UserRoutesOptions extends FastifyPluginOptions {
@@ -255,8 +256,13 @@ export async function listingRoutes(
 
         const holdInvoiceResponse = await client.makeHoldInvoice({
           amount: request.body.amount * 1000, // in millisats
-          description: `Satoshi's Auction House Bid - Listing ${listing.id}`,
+          description: `Satoshi's Auction House - ${listing.id}`,
           payment_hash: paymentHash,
+          metadata: request.body.comment
+            ? {
+                comment: request.body.comment,
+              }
+            : undefined,
         });
 
         const createdBid = await options.prisma.bid.create({
@@ -270,6 +276,7 @@ export async function listingRoutes(
             invoice: holdInvoiceResponse.invoice,
             preimage: preimage,
             paymentHash: holdInvoiceResponse.payment_hash,
+            comment: request.body.comment,
           },
         });
 
@@ -357,6 +364,7 @@ function mapListing(
         updatedAt: bid.updatedAt.getTime(),
         amount: bid.amount,
         settled: bid.settled,
+        comment: bid.comment,
       };
     }),
     ...(showPin
