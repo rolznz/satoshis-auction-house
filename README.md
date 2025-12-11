@@ -1,12 +1,18 @@
 # Satoshi's Auction House
 
-Self-custodial auctions powered by HOLD invoices and NWC receive-only connections. This solves a problem in traditional auctions where users can win and then cancel. This has partially been solved by KYCing users and rating systems, but with HOLD invoices there is no need - because if the HOLD invoice is accepted we know the user will pay.
+[Try it now](https://satoshisauction.house/)
+
+Self-custodial auctions powered by HOLD invoices and NWC receive-only connections. This solves a problem in traditional auctions where users can win and then cancel. This has partially been solved by KYCing users, legally binding agreements and/or custom buyer rating systems, but with HOLD invoices there is no need - because if the HOLD invoice is accepted the user's payment is already locked.
+
+For the seller side, there is still trust. But instead of building our own rating system we use Nostr profiles.
 
 When someone is outbid, their HOLD invoice will be immediately cancelled without the user losing any money or paying any fees.
 
 One downside is that invoices can only be held for a short amount of time. The auction must be quite active, with at least one payment every few hours. This could be solved in the future with NWC auto-bids.
 
-[Try it now](https://satoshisauction.house/)
+Rather than treating the HOLD invoice maximum time of a few hours as a limitation, instead focus on the fun part - that there should be many bids in a small amount of time, like in a physical auction.
+
+Places it could be used: Live streams, conferences, meetups, etc.
 
 ## Development
 
