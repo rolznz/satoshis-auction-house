@@ -126,7 +126,7 @@ export function ListingPage() {
                       </span>
                     )}
                   </>
-                ) : endsInMinutes >= 1 ? (
+                ) : endsInMinutes > 1 ? (
                   <span className="text-destructive">
                     Ends in less than 2 minutes!
                   </span>
