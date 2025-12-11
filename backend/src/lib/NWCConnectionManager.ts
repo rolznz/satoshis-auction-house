@@ -51,6 +51,9 @@ export class NWCConnectionManager {
         where: {
           paymentHash: notification.notification.payment_hash,
         },
+        include: {
+          listing: true,
+        },
       });
       if (!bid) {
         // NOTE: you should use an isolated app connection
@@ -65,7 +68,35 @@ export class NWCConnectionManager {
         await client.cancelHoldInvoice({
           payment_hash: notification.notification.payment_hash,
         });
-        console.info("Cancelled bid due to no settle deadline", { id: bid.id });
+        console.error("Cancelled bid due to no settle deadline", {
+          id: bid.id,
+        });
+        return;
+      }
+
+      if (bid.listing.endedAt) {
+        await client.cancelHoldInvoice({
+          payment_hash: bid.paymentHash,
+        });
+        console.info("Cancelled bid after auction ended", {
+          bid_id: bid.id,
+        });
+        return;
+      }
+
+      const settleDeadline = getSettleDeadlineFromCurrentBlockHeight(
+        notification.notification.settle_deadline,
+        this._blockHeight
+      );
+
+      const ONE_HOUR = 60 * 60 * 1000;
+      if (settleDeadline.getTime() - Date.now() < ONE_HOUR) {
+        await client.cancelHoldInvoice({
+          payment_hash: bid.paymentHash,
+        });
+        console.error("Bid has too short settle deadline", {
+          bid_id: bid.id,
+        });
         return;
       }
 
@@ -81,24 +112,10 @@ export class NWCConnectionManager {
             paid: true,
             held: true,
 
-            settleDeadline: getSettleDeadlineFromCurrentBlockHeight(
-              notification.notification.settle_deadline,
-              this._blockHeight
-            ),
+            settleDeadline,
             settleDeadlineBlocks: notification.notification.settle_deadline,
           },
         });
-
-        if (updatedBid.listing.endedAt) {
-          await client.cancelHoldInvoice({
-            payment_hash: updatedBid.paymentHash,
-          });
-          console.info("Cancelled bid after auction ended", {
-            id: bid.id,
-            amount: updatedBid.amount,
-          });
-          return;
-        }
 
         const highestBidResult = await this._prisma.bid.findMany({
           where: {
