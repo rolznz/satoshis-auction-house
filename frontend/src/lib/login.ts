@@ -39,8 +39,10 @@ export async function login() {
     const { token } = await response.json();
     useAppStore.getState().login(token);
     toast("Logged in successfully");
+    return true;
   } catch (error) {
     console.error(error);
     toast.error("failed to login: " + error);
+    return false;
   }
 }

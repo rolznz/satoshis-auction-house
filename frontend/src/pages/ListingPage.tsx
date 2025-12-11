@@ -155,7 +155,10 @@ export function ListingPage() {
                   className="w-full"
                   onClick={async () => {
                     if (!token) {
-                      await login();
+                      const loginResult = await login();
+                      if (!loginResult) {
+                        return;
+                      }
                     }
                     setBidDrawerOpen(true);
                     setBidAmount((listing.currentPrice + 1).toString());
