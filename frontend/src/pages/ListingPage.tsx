@@ -19,7 +19,8 @@ import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { useListing } from "@/lib/hooks/useListing";
 import { login } from "@/lib/login";
-import { Payment } from "@getalby/bitcoin-connect-react";
+import { launchPaymentModal } from "@getalby/bitcoin-connect-react";
+import { SendPaymentResponse } from "@webbtc/webln-types";
 import { Loader2Icon } from "lucide-react";
 import { nip19 } from "nostr-tools";
 import React from "react";
@@ -33,17 +34,18 @@ export function ListingPage() {
   const [bidAmount, setBidAmount] = React.useState("");
   const [bidDrawerOpen, setBidDrawerOpen] = React.useState(false);
   const [creatingBid, setCreatingBid] = React.useState(false);
-  const [invoice, setInvoice] = React.useState("");
   const [bidId, setBidId] = React.useState("");
+  const [setPaidFunction, setSetPaidFunction] =
+    React.useState<(sendPaymentResponse: SendPaymentResponse) => void>();
 
   React.useEffect(() => {
     if (bidId && listing?.bids.some((bid) => bid.id === bidId)) {
       toast("Bid placed successfully.");
       setBidId("");
-      setInvoice("");
+      setPaidFunction?.({ preimage: "dummy" });
       setBidDrawerOpen(false);
     }
-  }, [bidId, listing]);
+  }, [bidId, listing, setPaidFunction]);
 
   if (!listing) {
     return null;
@@ -67,8 +69,12 @@ export function ListingPage() {
         throw new Error(await response.text());
       }
       const { invoice, id: bidId } = await response.json();
-      setInvoice(invoice);
       setBidId(bidId);
+      setBidDrawerOpen(false);
+      const { setPaid } = launchPaymentModal({
+        invoice,
+      });
+      setSetPaidFunction(() => setPaid);
       alert(
         "This is a HOLD invoice. Pay it with your wallet and then return to this page and wait for your bid to be updated."
       );
@@ -210,7 +216,7 @@ export function ListingPage() {
               </div>
             )}
             <DrawerContent>
-              {!invoice && !creatingBid && (
+              {!creatingBid && (
                 <form onSubmit={createBid}>
                   <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
@@ -264,11 +270,6 @@ export function ListingPage() {
               {creatingBid && (
                 <div className="w-full h-32 flex items-center justify-center">
                   <Loader2Icon className="animate-spin" />
-                </div>
-              )}
-              {invoice && (
-                <div className="p-4">
-                  <Payment invoice={invoice} />
                 </div>
               )}
             </DrawerContent>
