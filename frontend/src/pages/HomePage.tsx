@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -6,10 +7,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { useListings } from "@/lib/hooks/useListings";
+import { useNostrProfile } from "@/lib/hooks/useNostrProfile";
 import { login } from "@/lib/login";
 import { Listing } from "@/lib/types";
+import { formatDistance } from "date-fns";
 import { Link } from "react-router-dom";
 
 export function HomePage() {
@@ -52,9 +62,10 @@ export function HomePage() {
 }
 
 function ListingCard({ listing }: { listing: Listing }) {
+  const sellerNostrProfile = useNostrProfile(listing.sellerPubkey);
   return (
     <Link to={`/listings/${listing.id}`}>
-      <Card className="">
+      <Card className="pb-0">
         <CardContent>
           <img
             src={listing.imageUrl || "/icon.svg"}
@@ -83,11 +94,27 @@ function ListingCard({ listing }: { listing: Listing }) {
             </p>
           </CardContent>
         )}
-        {/* <CardFooter className="text-xs">
-                By{" "}
-                {nip19.npubEncode(listing.sellerPubkey).substring(0, 21) +
-                  "..."}
-              </CardFooter> */}
+
+        {sellerNostrProfile && (
+          <Item variant="muted">
+            <ItemMedia>
+              <Avatar className="size-10">
+                <AvatarImage src={sellerNostrProfile.picture} />
+                <AvatarFallback>
+                  {sellerNostrProfile.name?.substring(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{sellerNostrProfile.name}</ItemTitle>
+              <ItemDescription>
+                {formatDistance(listing.createdAt, new Date(), {
+                  addSuffix: true,
+                })}
+              </ItemDescription>
+            </ItemContent>
+          </Item>
+        )}
       </Card>
     </Link>
   );

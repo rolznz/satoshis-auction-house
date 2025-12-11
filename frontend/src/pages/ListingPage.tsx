@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,7 +27,9 @@ import {
 } from "@/components/ui/item";
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { useListing } from "@/lib/hooks/useListing";
+import { useNostrProfile } from "@/lib/hooks/useNostrProfile";
 import { login } from "@/lib/login";
+import { Bid, Listing } from "@/lib/types";
 import { launchPaymentModal } from "@getalby/bitcoin-connect-react";
 import { SendPaymentResponse } from "@webbtc/webln-types";
 import { formatDistance } from "date-fns";
@@ -38,9 +41,16 @@ import { useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export function ListingPage() {
-  const token = useAppStore((store) => store.token);
   const { id } = useParams() as { id: string };
   const { data: listing } = useListing(id);
+  if (!listing) {
+    return null;
+  }
+  return <ListingPageInternal listing={listing} />;
+}
+export function ListingPageInternal({ listing }: { listing: Listing }) {
+  const token = useAppStore((store) => store.token);
+
   const [bidAmount, setBidAmount] = React.useState("");
   const [bidDrawerOpen, setBidDrawerOpen] = React.useState(false);
   const [creatingBid, setCreatingBid] = React.useState(false);
@@ -71,15 +81,13 @@ export function ListingPage() {
     setLastBidId(newBidId);
   }, [lastBidId, listing]);
 
-  if (!listing) {
-    return null;
-  }
+  const sellerNostrProfile = useNostrProfile(listing?.sellerPubkey);
 
   async function createBid(e: React.FormEvent) {
     e.preventDefault();
     setCreatingBid(true);
     try {
-      const response = await fetch(`/api/listings/${id}/bids`, {
+      const response = await fetch(`/api/listings/${listing.id}/bids`, {
         method: "POST",
         body: JSON.stringify({
           amount: parseInt(bidAmount),
@@ -150,6 +158,26 @@ export function ListingPage() {
             <span className="font-mono">{listing.bids.length}</span> bids
           </CardDescription>
         </CardContent>
+        {sellerNostrProfile && (
+          <Item variant="muted">
+            <ItemMedia>
+              <Avatar className="size-10">
+                <AvatarImage src={sellerNostrProfile.picture} />
+                <AvatarFallback>
+                  {sellerNostrProfile.name?.substring(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>{sellerNostrProfile.name}</ItemTitle>
+              <ItemDescription>
+                {formatDistance(listing.createdAt, new Date(), {
+                  addSuffix: true,
+                })}
+              </ItemDescription>
+            </ItemContent>
+          </Item>
+        )}
         <div className="flex-1" />
         {listing.endsAt && listing.endsAt > Date.now() && !listing.endedAt && (
           <CardContent className="flex justify-center">
@@ -219,35 +247,52 @@ export function ListingPage() {
                 {listing.winnerPubkey && (
                   <>
                     <p className="break-all">
-                      Winner: {nip19.npubEncode(listing.winnerPubkey)}
+                      <Winner
+                        winnerPubkey={listing.winnerPubkey}
+                        bid={listing.bids[0]}
+                      />
                     </p>
 
                     {listing.pin && (
                       <div className="mt-4">
-                        <p>You won!</p>
-                        <p>
-                          Send this pin {listing.pin} to your counterparty to
-                          prove your purchase and co-ordinate delivery.
+                        <p className="font-bold">🎉🎉🎉</p>
+                        <p className="mt-4">
+                          Send this pin:{" "}
+                          <span className="font-semibold">{listing.pin}</span>{" "}
+                          to your counterparty to prove your purchase and
+                          co-ordinate delivery.
                         </p>
-                        <p className="break-all">
-                          Seller npub: {nip19.npubEncode(listing.sellerPubkey)}
-                        </p>
-                        {listing.sellerContactInfo && (
-                          <p>
-                            Seller contact info: {listing.sellerContactInfo}
-                          </p>
-                        )}
-                        {listing.winnerPubkey && (
-                          <p className="break-all">
-                            Winner npub:{" "}
-                            {nip19.npubEncode(listing.winnerPubkey)}
-                          </p>
-                        )}
-                        {listing.winnerContactInfo && (
-                          <p>
-                            Winner contact info: {listing.winnerContactInfo}
-                          </p>
-                        )}
+                        <Item variant="outline" className="mt-2">
+                          <ItemMedia>
+                            <Avatar className="size-10">
+                              <AvatarImage
+                                src={
+                                  sellerNostrProfile.picture ||
+                                  "https://github.com/evilrabbit.png"
+                                }
+                              />
+                              <AvatarFallback>
+                                {sellerNostrProfile.name?.substring(0, 2) ||
+                                  "??"}
+                              </AvatarFallback>
+                            </Avatar>
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle>
+                              Seller: {sellerNostrProfile.name || "Evil Rabbit"}
+                            </ItemTitle>
+                            <ItemDescription>
+                              {nip19.npubEncode(listing.sellerPubkey)}
+                              <br />
+                              {listing.sellerContactInfo}
+                            </ItemDescription>
+                          </ItemContent>
+                        </Item>
+
+                        <WinnerContactInfo
+                          winnerPubkey={listing.winnerPubkey}
+                          winnerContactInfo={listing.winnerContactInfo}
+                        />
                       </div>
                     )}
                   </>
@@ -317,24 +362,112 @@ export function ListingPage() {
       </Card>
       <div className="flex-1 flex flex-col gap-2">
         {listing.bids.map((bid, index) => (
-          <Item key={bid.id} variant="outline">
-            <ItemMedia>
-              <Avatar className="size-10">
-                <AvatarImage src="https://github.com/evilrabbit.png" />
-                <AvatarFallback>{index + 1}</AvatarFallback>
-              </Avatar>
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle>Evil Rabbit - {bid.amount} sats</ItemTitle>
-              <ItemDescription>
-                {formatDistance(bid.createdAt, new Date(), {
-                  addSuffix: true,
-                })}
-              </ItemDescription>
-            </ItemContent>
-          </Item>
+          <BidItem key={bid.id} bid={bid} leading={index === 0} />
         ))}
       </div>
     </div>
+  );
+}
+function BidItem({ bid, leading }: { bid: Bid; leading: boolean }) {
+  const bidderNostrProfile = useNostrProfile(bid.bidderPubkey);
+
+  return (
+    <Item variant="outline">
+      <ItemMedia>
+        <Avatar className="size-10">
+          <AvatarImage
+            src={
+              bidderNostrProfile.picture || "https://github.com/evilrabbit.png"
+            }
+          />
+          <AvatarFallback>
+            {bidderNostrProfile.name?.substring(0, 2) || "??"}
+          </AvatarFallback>
+        </Avatar>
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle className="flex justify-between items-center w-full">
+          <span>
+            {bidderNostrProfile.name || "Evil Rabbit"} - {bid.amount} sats
+          </span>
+          {leading && <Badge>Leading</Badge>}
+        </ItemTitle>
+        <ItemDescription>
+          {formatDistance(bid.createdAt, new Date(), {
+            addSuffix: true,
+          })}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
+  );
+}
+
+function Winner({ winnerPubkey, bid }: { winnerPubkey: string; bid: Bid }) {
+  const winnerNostrProfile = useNostrProfile(winnerPubkey);
+  return (
+    <div className="mt-4">
+      <h2 className="font-semibold">Winner</h2>
+      <Item variant="outline">
+        <ItemMedia>
+          <Avatar className="size-10">
+            <AvatarImage
+              src={
+                winnerNostrProfile.picture ||
+                "https://github.com/evilrabbit.png"
+              }
+            />
+            <AvatarFallback>
+              {winnerNostrProfile.name?.substring(0, 2) || "??"}
+            </AvatarFallback>
+          </Avatar>
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle>
+            {winnerNostrProfile.name || "Evil Rabbit"} - {bid.amount} sats
+          </ItemTitle>
+          <ItemDescription>
+            {formatDistance(bid.createdAt, new Date(), {
+              addSuffix: true,
+            })}
+          </ItemDescription>
+        </ItemContent>
+      </Item>
+    </div>
+  );
+}
+
+function WinnerContactInfo({
+  winnerPubkey,
+  winnerContactInfo,
+}: {
+  winnerPubkey: string;
+  winnerContactInfo: string | undefined;
+}) {
+  const winnerNostrProfile = useNostrProfile(winnerPubkey);
+  return (
+    <Item variant="outline" className="mt-2">
+      <ItemMedia>
+        <Avatar className="size-10">
+          <AvatarImage
+            src={
+              winnerNostrProfile.picture || "https://github.com/evilrabbit.png"
+            }
+          />
+          <AvatarFallback>
+            {winnerNostrProfile.name?.substring(0, 2) || "??"}
+          </AvatarFallback>
+        </Avatar>
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle>
+          Winner: {winnerNostrProfile.name || "Evil Rabbit"}
+        </ItemTitle>
+        <ItemDescription>
+          {nip19.npubEncode(winnerPubkey)}
+          <br />
+          {winnerContactInfo}
+        </ItemDescription>
+      </ItemContent>
+    </Item>
   );
 }

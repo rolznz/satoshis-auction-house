@@ -30,3 +30,5 @@ export type Listing = {
   sellerContactInfo?: string;
   winnerContactInfo?: string;
 };
+
+export type NostrProfile = { name?: string; picture?: string };
