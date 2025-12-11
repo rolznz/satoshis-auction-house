@@ -137,7 +137,7 @@ export function ListingPage() {
         </CardContent>
         <CardHeader>
           <CardTitle>{listing.title}</CardTitle>
-          <CardDescription>
+          <CardDescription className="whitespace-pre-wrap">
             {listing.description || "No description provided"}
           </CardDescription>
         </CardHeader>

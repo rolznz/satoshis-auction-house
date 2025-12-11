@@ -94,50 +94,64 @@ export async function listingRoutes(
     }
   );
 
-  fastify.get("/", async (request, reply) => {
-    try {
-      let loggedInPubkey: string | undefined;
+  fastify.get<{ Querystring: { past?: string } }>(
+    "/",
+    async (request, reply) => {
       try {
-        const { pubkey } = await request.jwtVerify<{ pubkey: string }>();
-        loggedInPubkey = pubkey;
-      } catch (error) {}
+        let loggedInPubkey: string | undefined;
+        try {
+          const { pubkey } = await request.jwtVerify<{ pubkey: string }>();
+          loggedInPubkey = pubkey;
+        } catch (error) {}
 
-      const listings = await options.prisma.listing.findMany({
-        where: {
-          public: true,
-          endedAt: null,
-          OR: [
-            { endsAt: null },
-            {
-              endsAt: {
-                gt: new Date(),
+        const isPast = request.query.past;
+
+        const listings = await options.prisma.listing.findMany({
+          where: {
+            public: true,
+
+            ...(isPast
+              ? {
+                  endedAt: {
+                    not: null,
+                  },
+                }
+              : {
+                  endedAt: null,
+                  OR: [
+                    { endsAt: null },
+                    {
+                      endsAt: {
+                        gt: new Date(),
+                      },
+                    },
+                  ],
+                }),
+          },
+          include: {
+            bids: {
+              where: {
+                paid: true,
+              },
+              include: {
+                bidder: true,
               },
             },
-          ],
-        },
-        include: {
-          bids: {
-            where: {
-              paid: true,
-            },
-            include: {
-              bidder: true,
-            },
+            seller: true,
+            winner: true,
           },
-          seller: true,
-          winner: true,
-        },
-      });
+        });
 
-      return reply.send(
-        listings.map((listing) => mapListing(listing, loggedInPubkey))
-      );
-    } catch (error: any) {
-      fastify.log.error(error, `Error fetching listing`);
+        return reply.send(
+          listings.map((listing) => mapListing(listing, loggedInPubkey))
+        );
+      } catch (error: any) {
+        fastify.log.error(error, `Error fetching listing`);
 
-      return reply.code(500).send();
+        return reply.code(500).send();
+      }
     }
-  });
+  );
   fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
     try {
       let loggedInPubkey: string | undefined;

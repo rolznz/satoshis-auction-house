@@ -9,12 +9,13 @@ import {
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { login } from "@/lib/login";
 import { MenuIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom"; // Import routing components
+import { Link, useLocation, useNavigate } from "react-router-dom"; // Import routing components
 
 export function Header() {
   const loggedIn = useAppStore((store) => !!store.token);
   const logout = useAppStore((store) => store.logout);
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <header className="flex flex-col gap-3 items-center justify-center py-4 relative w-full">
@@ -29,6 +30,11 @@ export function Header() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="start">
+          {location.pathname !== "/" && (
+            <DropdownMenuItem asChild>
+              <Link to="/">Home</Link>
+            </DropdownMenuItem>
+          )}
           {!loggedIn && (
             <DropdownMenuItem onClick={login}>Login</DropdownMenuItem>
           )}
@@ -36,10 +42,10 @@ export function Header() {
           {loggedIn && (
             <>
               <DropdownMenuItem asChild>
-                <Link to="/settings">Settings</Link>
+                <Link to="/listings/new">Create Listing</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link to="/listings/new">Create Listing</Link>
+                <Link to="/settings">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {

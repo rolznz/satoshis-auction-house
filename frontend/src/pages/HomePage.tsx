@@ -9,54 +9,19 @@ import {
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { useListings } from "@/lib/hooks/useListings";
 import { login } from "@/lib/login";
+import { Listing } from "@/lib/types";
 import { Link } from "react-router-dom";
 
 export function HomePage() {
   const { data: listings } = useListings();
+  const { data: pastListings } = useListings({ past: true });
   const loggedIn = useAppStore((store) => !!store.token);
   return (
     <>
       <h1 className="mt-8 font-semibold text-xl">Active Listings</h1>
-      <div className="w-full flex flex-wrap p-4 gap-4">
+      <div className="w-full flex flex-wrap p-4 gap-4 items-center justify-center">
         {listings?.map((listing) => (
-          <Link to={`/listings/${listing.id}`} key={listing.id}>
-            <Card className="">
-              <CardContent>
-                <img
-                  src={listing.imageUrl || "/icon.svg"}
-                  className="w-64 h-64 object-cover"
-                />
-              </CardContent>
-              <CardHeader>
-                <CardTitle>{listing.title}</CardTitle>
-                <CardDescription>
-                  {listing.description || "No description provided"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex justify-between items-center">
-                <CardDescription>
-                  <span className="font-mono">{listing.currentPrice}</span> sats
-                </CardDescription>
-                <CardDescription>
-                  <span className="font-mono">{listing.bids.length}</span> bids
-                </CardDescription>
-              </CardContent>
-              {listing.endsAt && listing.endsAt > Date.now() && (
-                <CardContent className="flex justify-center -mt-6 -mb-4">
-                  <p className="font-semibold text-xs">
-                    Ends in ~
-                    {Math.floor((listing.endsAt - Date.now()) / 1000 / 60)}{" "}
-                    minutes
-                  </p>
-                </CardContent>
-              )}
-              {/* <CardFooter className="text-xs">
-                By{" "}
-                {nip19.npubEncode(listing.sellerPubkey).substring(0, 21) +
-                  "..."}
-              </CardFooter> */}
-            </Card>
-          </Link>
+          <ListingCard key={listing.id} listing={listing} />
         ))}
       </div>
       {listings && !listings.length && (
@@ -72,6 +37,58 @@ export function HomePage() {
           </div>
         </div>
       )}
+      {pastListings && (
+        <>
+          <h1 className="mt-8 font-semibold text-xl">Past Listings</h1>
+          <div className="w-full flex flex-wrap p-4 gap-4 items-center justify-center">
+            {pastListings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
+        </>
+      )}
     </>
+  );
+}
+
+function ListingCard({ listing }: { listing: Listing }) {
+  return (
+    <Link to={`/listings/${listing.id}`}>
+      <Card className="">
+        <CardContent>
+          <img
+            src={listing.imageUrl || "/icon.svg"}
+            className="w-64 h-64 object-cover"
+          />
+        </CardContent>
+        <CardHeader>
+          <CardTitle>{listing.title}</CardTitle>
+          <CardDescription className="whitespace-pre-wrap line-clamp-3">
+            {listing.description || "No description provided"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-between items-center">
+          <CardDescription>
+            <span className="font-mono">{listing.currentPrice}</span> sats
+          </CardDescription>
+          <CardDescription>
+            <span className="font-mono">{listing.bids.length}</span> bids
+          </CardDescription>
+        </CardContent>
+        {listing.endsAt && listing.endsAt > Date.now() && (
+          <CardContent className="flex justify-center -mt-6 -mb-4">
+            <p className="font-semibold text-xs">
+              Ends in ~{Math.floor((listing.endsAt - Date.now()) / 1000 / 60)}{" "}
+              minutes
+            </p>
+          </CardContent>
+        )}
+        {/* <CardFooter className="text-xs">
+                By{" "}
+                {nip19.npubEncode(listing.sellerPubkey).substring(0, 21) +
+                  "..."}
+              </CardFooter> */}
+      </Card>
+    </Link>
   );
 }
