@@ -261,6 +261,16 @@ function mapListing(
     (loggedInPubkey === listing.seller.pubkey ||
       loggedInPubkey === listing.winner?.pubkey);
 
+  let endsInMinutes: number | undefined;
+  let endsAt =
+    (listing.endsAt
+      ? listing.endsAt.getTime()
+      : listing.bids.find((bid) => bid.held)?.settleDeadline?.getTime()) ||
+    undefined;
+  if (endsAt) {
+    endsInMinutes = Math.ceil((endsAt - Date.now()) / 1000 / 60);
+  }
+
   return {
     id: listing.id,
     createdAt: listing.createdAt.getTime(),
@@ -277,10 +287,9 @@ function mapListing(
     startingBid: listing.startingBid,
     startsAt: listing.startsAt,
     endedAt: listing.endedAt,
-    endsAt: listing.endsAt
-      ? listing.endsAt.getTime()
-      : listing.bids.find((bid) => bid.held)?.settleDeadline?.getTime(),
+    endsAt,
     endsAtBlock: listing.bids.find((bid) => bid.held)?.settleDeadlineBlocks,
+    endsInMinutes,
     public: listing.public,
     bids: listing.bids.map((bid) => {
       return {

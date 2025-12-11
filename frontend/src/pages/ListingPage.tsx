@@ -80,9 +80,7 @@ export function ListingPage() {
     setCreatingBid(false);
   }
 
-  const endsInMinutes = listing.endsAt
-    ? Math.floor((listing.endsAt - Date.now()) / 1000 / 60)
-    : undefined;
+  const endsInMinutes = listing.endsInMinutes;
 
   return (
     <div className="p-4">
@@ -128,7 +126,7 @@ export function ListingPage() {
                       </span>
                     )}
                   </>
-                ) : endsInMinutes > 1 ? (
+                ) : endsInMinutes >= 1 ? (
                   <span className="text-destructive">
                     Ends in less than 2 minutes!
                   </span>

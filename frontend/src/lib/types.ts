@@ -22,6 +22,7 @@ export type Listing = {
   endedAt?: number;
   endsAt?: number;
   endsAtBlock?: number;
+  endsInMinutes?: number;
   public: boolean;
   bids: Bid[];
   pin?: number;
