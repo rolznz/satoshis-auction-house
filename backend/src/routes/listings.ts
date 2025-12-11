@@ -158,6 +158,9 @@ export async function listingRoutes(
             include: {
               bidder: true,
             },
+            orderBy: {
+              amount: "desc",
+            },
           },
           seller: true,
           winner: true,

@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -16,13 +17,22 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import {
+  Item,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { useListing } from "@/lib/hooks/useListing";
 import { login } from "@/lib/login";
 import { launchPaymentModal } from "@getalby/bitcoin-connect-react";
 import { SendPaymentResponse } from "@webbtc/webln-types";
+import { formatDistance } from "date-fns";
 import { Loader2Icon } from "lucide-react";
 import { nip19 } from "nostr-tools";
+import { QRCodeSVG } from "qrcode.react";
 import React from "react";
 import { useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -34,18 +44,32 @@ export function ListingPage() {
   const [bidAmount, setBidAmount] = React.useState("");
   const [bidDrawerOpen, setBidDrawerOpen] = React.useState(false);
   const [creatingBid, setCreatingBid] = React.useState(false);
-  const [bidId, setBidId] = React.useState("");
+  const [placedBidId, setPlacedBidId] = React.useState("");
+  const [lastBidId, setLastBidId] = React.useState("");
   const [setPaidFunction, setSetPaidFunction] =
     React.useState<(sendPaymentResponse: SendPaymentResponse) => void>();
 
   React.useEffect(() => {
-    if (bidId && listing?.bids.some((bid) => bid.id === bidId)) {
+    if (placedBidId && listing?.bids.some((bid) => bid.id === placedBidId)) {
       toast("Bid placed successfully.");
-      setBidId("");
+      setPlacedBidId("");
       setPaidFunction?.({ preimage: "dummy" });
       setBidDrawerOpen(false);
     }
-  }, [bidId, listing, setPaidFunction]);
+  }, [placedBidId, listing, setPaidFunction]);
+
+  React.useEffect(() => {
+    if (!listing) {
+      return;
+    }
+    const newBidId = listing.bids[0]?.id;
+    if (lastBidId && newBidId !== lastBidId) {
+      toast("New bid!", {
+        description: listing.bids[0].amount + " sats",
+      });
+    }
+    setLastBidId(newBidId);
+  }, [lastBidId, listing]);
 
   if (!listing) {
     return null;
@@ -69,7 +93,7 @@ export function ListingPage() {
         throw new Error(await response.text());
       }
       const { invoice, id: bidId } = await response.json();
-      setBidId(bidId);
+      setPlacedBidId(bidId);
       setBidDrawerOpen(false);
       const { setPaid } = launchPaymentModal({
         invoice,
@@ -96,13 +120,20 @@ export function ListingPage() {
   const endsInMinutes = listing.endsInMinutes;
 
   return (
-    <div className="p-4">
-      <Card className="">
-        <CardContent>
+    <div className="p-4 flex flex-1 flex-wrap w-full gap-4">
+      <Card className="flex-1">
+        <CardContent className="flex items-start justify-between">
           <img
             src={listing.imageUrl || "/icon.svg"}
-            className="w-64 h-64 object-cover"
+            className="w-full lg:w-64 h-64 object-cover"
           />
+          <div className="hidden lg:flex flex-col items-center justify-center">
+            Join the auction!
+            <QRCodeSVG
+              value={`${window.origin}/listings/${listing.id}`}
+              className="w-32 h-32 object-cover"
+            />
+          </div>
         </CardContent>
         <CardHeader>
           <CardTitle>{listing.title}</CardTitle>
@@ -112,12 +143,14 @@ export function ListingPage() {
         </CardHeader>
         <CardContent className="flex justify-between items-center">
           <CardDescription>
-            <span className="font-mono">{listing.currentPrice}</span> sats
+            <span className="font-mono text-4xl">{listing.currentPrice}</span>{" "}
+            sats
           </CardDescription>
           <CardDescription>
             <span className="font-mono">{listing.bids.length}</span> bids
           </CardDescription>
         </CardContent>
+        <div className="flex-1" />
         {listing.endsAt && listing.endsAt > Date.now() && !listing.endedAt && (
           <CardContent className="flex justify-center">
             {!!endsInMinutes && (
@@ -282,6 +315,26 @@ export function ListingPage() {
           </Drawer>
         </CardFooter>
       </Card>
+      <div className="flex-1 flex flex-col gap-2">
+        {listing.bids.map((bid, index) => (
+          <Item key={bid.id} variant="outline">
+            <ItemMedia>
+              <Avatar className="size-10">
+                <AvatarImage src="https://github.com/evilrabbit.png" />
+                <AvatarFallback>{index + 1}</AvatarFallback>
+              </Avatar>
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Evil Rabbit - {bid.amount} sats</ItemTitle>
+              <ItemDescription>
+                {formatDistance(bid.createdAt, new Date(), {
+                  addSuffix: true,
+                })}
+              </ItemDescription>
+            </ItemContent>
+          </Item>
+        ))}
+      </div>
     </div>
   );
 }
