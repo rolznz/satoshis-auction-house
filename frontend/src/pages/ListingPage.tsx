@@ -267,19 +267,20 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
                             <Avatar className="size-10">
                               <AvatarImage
                                 src={
-                                  sellerNostrProfile.picture ||
+                                  sellerNostrProfile?.picture ||
                                   "https://github.com/evilrabbit.png"
                                 }
                               />
                               <AvatarFallback>
-                                {sellerNostrProfile.name?.substring(0, 2) ||
+                                {sellerNostrProfile?.name?.substring(0, 2) ||
                                   "??"}
                               </AvatarFallback>
                             </Avatar>
                           </ItemMedia>
                           <ItemContent>
                             <ItemTitle>
-                              Seller: {sellerNostrProfile.name || "Evil Rabbit"}
+                              Seller:{" "}
+                              {sellerNostrProfile?.name || "Evil Rabbit"}
                             </ItemTitle>
                             <ItemDescription>
                               {nip19.npubEncode(listing.sellerPubkey)}
@@ -377,18 +378,18 @@ function BidItem({ bid, leading }: { bid: Bid; leading: boolean }) {
         <Avatar className="size-10">
           <AvatarImage
             src={
-              bidderNostrProfile.picture || "https://github.com/evilrabbit.png"
+              bidderNostrProfile?.picture || "https://github.com/evilrabbit.png"
             }
           />
           <AvatarFallback>
-            {bidderNostrProfile.name?.substring(0, 2) || "??"}
+            {bidderNostrProfile?.name?.substring(0, 2) || "??"}
           </AvatarFallback>
         </Avatar>
       </ItemMedia>
       <ItemContent>
         <ItemTitle className="flex justify-between items-center w-full">
           <span>
-            {bidderNostrProfile.name || "Evil Rabbit"} - {bid.amount} sats
+            {bidderNostrProfile?.name || "Evil Rabbit"} - {bid.amount} sats
           </span>
           {leading && <Badge>Leading</Badge>}
         </ItemTitle>
@@ -412,18 +413,18 @@ function Winner({ winnerPubkey, bid }: { winnerPubkey: string; bid: Bid }) {
           <Avatar className="size-10">
             <AvatarImage
               src={
-                winnerNostrProfile.picture ||
+                winnerNostrProfile?.picture ||
                 "https://github.com/evilrabbit.png"
               }
             />
             <AvatarFallback>
-              {winnerNostrProfile.name?.substring(0, 2) || "??"}
+              {winnerNostrProfile?.name?.substring(0, 2) || "??"}
             </AvatarFallback>
           </Avatar>
         </ItemMedia>
         <ItemContent>
           <ItemTitle>
-            {winnerNostrProfile.name || "Evil Rabbit"} - {bid.amount} sats
+            {winnerNostrProfile?.name || "Evil Rabbit"} - {bid.amount} sats
           </ItemTitle>
           <ItemDescription>
             {formatDistance(bid.createdAt, new Date(), {
@@ -450,17 +451,17 @@ function WinnerContactInfo({
         <Avatar className="size-10">
           <AvatarImage
             src={
-              winnerNostrProfile.picture || "https://github.com/evilrabbit.png"
+              winnerNostrProfile?.picture || "https://github.com/evilrabbit.png"
             }
           />
           <AvatarFallback>
-            {winnerNostrProfile.name?.substring(0, 2) || "??"}
+            {winnerNostrProfile?.name?.substring(0, 2) || "??"}
           </AvatarFallback>
         </Avatar>
       </ItemMedia>
       <ItemContent>
         <ItemTitle>
-          Winner: {winnerNostrProfile.name || "Evil Rabbit"}
+          Winner: {winnerNostrProfile?.name || "Evil Rabbit"}
         </ItemTitle>
         <ItemDescription>
           {nip19.npubEncode(winnerPubkey)}
