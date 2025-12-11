@@ -143,24 +143,40 @@ const start = async () => {
           }
 
           if (settleDeadline.getTime() > Date.now()) {
-            console.log("Highest bid not expired yet", { bid_id: heldBid.id });
-            continue;
-          }
-          console.log(
-            "Highest bid settle deadline is expiring, ending listing",
-            {
-              bidId: heldBid.id,
-              listingId: heldBid.listingId,
-              settleDeadline: settleDeadline.getTime(),
-              now: Date.now(),
+            console.info("Highest bid not expired yet", {
+              bid_id: heldBid.id,
+              ends_in_minutes: Math.floor(
+                (settleDeadline.getTime() - Date.now()) / 1000 / 60
+              ),
+            });
+
+            if (!activeListing.endsAt) {
+              continue;
             }
-          );
+
+            console.info("Listing has fixed end date", {
+              listing_id: heldBid.id,
+              ends_in_minutes: Math.floor(
+                (activeListing.endsAt.getTime() - Date.now()) / 1000 / 60
+              ),
+            });
+            if (activeListing.endsAt.getTime() > Date.now()) {
+              continue;
+            }
+          }
+          console.log("ending listing", {
+            bid_id: heldBid.id,
+            listing_id: heldBid.listingId,
+            settle_deadline: settleDeadline.getTime(),
+            ends_at: activeListing.endsAt,
+            now: Date.now(),
+          });
 
           const receiveOnlyConnectionSecret =
             activeListing.seller.receiveOnlyConnectionSecret;
           if (!receiveOnlyConnectionSecret) {
             console.error("no receive only connection secret for listing", {
-              listingId: activeListing.id,
+              listing_id: activeListing.id,
             });
             continue;
           }

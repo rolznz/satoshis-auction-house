@@ -80,6 +80,10 @@ export function ListingPage() {
     setCreatingBid(false);
   }
 
+  const endsInMinutes = listing.endsAt
+    ? Math.floor((listing.endsAt - Date.now()) / 1000 / 60)
+    : undefined;
+
   return (
     <div className="p-4">
       <Card className="">
@@ -103,24 +107,40 @@ export function ListingPage() {
             <span className="font-mono">{listing.bids.length}</span> bids
           </CardDescription>
         </CardContent>
-        {listing.endsAt && !listing.endedAt && (
+        {listing.endsAt && listing.endsAt > Date.now() && !listing.endedAt && (
           <CardContent className="flex justify-center">
-            <p className="font-semibold text-xs">
-              Ends in ~{Math.floor((listing.endsAt - Date.now()) / 1000 / 60)}{" "}
-              minutes{" "}
-              {listing.endsAtBlock && (
-                <span>
-                  at{" "}
-                  <a
-                    href="https://mempool.space"
-                    target="_blank"
-                    className="underline"
-                  >
-                    block {listing.endsAtBlock}
-                  </a>
-                </span>
-              )}
-            </p>
+            {!!endsInMinutes && (
+              <p className="font-semibold text-xs">
+                {endsInMinutes > 2 ? (
+                  <>
+                    Ends in {listing.endsAtBlock && "~"}
+                    {endsInMinutes} minutes{" "}
+                    {listing.endsAtBlock && (
+                      <span>
+                        at{" "}
+                        <a
+                          href="https://mempool.space"
+                          target="_blank"
+                          className="underline"
+                        >
+                          block {listing.endsAtBlock}
+                        </a>
+                      </span>
+                    )}
+                  </>
+                ) : endsInMinutes > 1 ? (
+                  <span className="text-destructive">
+                    Ends in less than 2 minutes!
+                  </span>
+                ) : (
+                  <>
+                    <span className="text-destructive animate-pulse">
+                      Ends in less than 1 minute!
+                    </span>
+                  </>
+                )}
+              </p>
+            )}
           </CardContent>
         )}
         <CardFooter>
@@ -130,47 +150,57 @@ export function ListingPage() {
               setBidDrawerOpen(false);
             }}
           >
-            {!listing.endedAt && (
-              <Button
-                className="w-full"
-                onClick={() => {
-                  setBidDrawerOpen(true);
-                  setBidAmount((listing.currentPrice + 1).toString());
-                }}
-              >
-                Bid Now
-              </Button>
-            )}
-            {listing.endedAt && (
+            {!listing.endedAt &&
+              (!listing.endsAt || listing.endsAt > Date.now()) && (
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    setBidDrawerOpen(true);
+                    setBidAmount((listing.currentPrice + 1).toString());
+                  }}
+                >
+                  Bid Now
+                </Button>
+              )}
+            {(listing.endedAt ||
+              (listing.endsAt && listing.endsAt < Date.now())) && (
               <div>
                 <Button disabled>Auction Ended</Button>
                 {listing.winnerPubkey && (
-                  <p className="break-all">
-                    Winner: {nip19.npubEncode(listing.winnerPubkey)}
-                  </p>
-                )}
-                {listing.pin && (
-                  <div className="mt-4">
-                    <p>You won!</p>
-                    <p>
-                      Send this pin {listing.pin} to your counterparty to prove
-                      your purchase and co-ordinate delivery.
-                    </p>
+                  <>
                     <p className="break-all">
-                      Seller npub: {nip19.npubEncode(listing.sellerPubkey)}
+                      Winner: {nip19.npubEncode(listing.winnerPubkey)}
                     </p>
-                    {listing.sellerContactInfo && (
-                      <p>Seller contact info: {listing.sellerContactInfo}</p>
+
+                    {listing.pin && (
+                      <div className="mt-4">
+                        <p>You won!</p>
+                        <p>
+                          Send this pin {listing.pin} to your counterparty to
+                          prove your purchase and co-ordinate delivery.
+                        </p>
+                        <p className="break-all">
+                          Seller npub: {nip19.npubEncode(listing.sellerPubkey)}
+                        </p>
+                        {listing.sellerContactInfo && (
+                          <p>
+                            Seller contact info: {listing.sellerContactInfo}
+                          </p>
+                        )}
+                        {listing.winnerPubkey && (
+                          <p className="break-all">
+                            Winner npub:{" "}
+                            {nip19.npubEncode(listing.winnerPubkey)}
+                          </p>
+                        )}
+                        {listing.winnerContactInfo && (
+                          <p>
+                            Winner contact info: {listing.winnerContactInfo}
+                          </p>
+                        )}
+                      </div>
                     )}
-                    {listing.winnerPubkey && (
-                      <p className="break-all">
-                        Winner npub: {nip19.npubEncode(listing.winnerPubkey)}
-                      </p>
-                    )}
-                    {listing.winnerContactInfo && (
-                      <p>Winner contact info: {listing.winnerContactInfo}</p>
-                    )}
-                  </div>
+                  </>
                 )}
               </div>
             )}

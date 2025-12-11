@@ -14,6 +14,7 @@ type NewListing = {
   imageUrl: string;
   startingBid?: number;
   public: boolean;
+  endsAt?: number;
 };
 
 type NewBid = {
@@ -36,7 +37,7 @@ export async function listingRoutes(
       request: FastifyRequest<{ Body: NewListing }>,
       reply: FastifyReply
     ) => {
-      const listing = request.body;
+      const newListing = request.body;
       try {
         const { pubkey } = await request.jwtVerify<{ pubkey: string }>();
 
@@ -51,20 +52,21 @@ export async function listingRoutes(
         }
 
         if (
-          listing.startingBid &&
-          (Math.floor(listing.startingBid) !== listing.startingBid ||
-            listing.startingBid < 0)
+          newListing.startingBid &&
+          (Math.floor(newListing.startingBid) !== newListing.startingBid ||
+            newListing.startingBid < 0)
         ) {
           throw new Error("Invalid starting bid in sats");
         }
 
         const createdListing = await options.prisma.listing.create({
           data: {
-            title: listing.title,
-            description: listing.description,
-            imageUrl: listing.imageUrl,
-            startingBid: listing.startingBid || 1,
-            public: listing.public,
+            title: newListing.title,
+            description: newListing.description,
+            imageUrl: newListing.imageUrl,
+            startingBid: newListing.startingBid || 1,
+            public: newListing.public,
+            endsAt: newListing.endsAt ? new Date(newListing.endsAt) : undefined,
             sellerId: user.id,
             pin: generatePin(),
           },
@@ -96,6 +98,14 @@ export async function listingRoutes(
         where: {
           public: true,
           endedAt: null,
+          OR: [
+            { endsAt: null },
+            {
+              endsAt: {
+                gt: new Date(),
+              },
+            },
+          ],
         },
         include: {
           bids: {
@@ -268,7 +278,7 @@ function mapListing(
     startsAt: listing.startsAt,
     endedAt: listing.endedAt,
     endsAt: listing.endsAt
-      ? listing.endsAt
+      ? listing.endsAt.getTime()
       : listing.bids.find((bid) => bid.held)?.settleDeadline?.getTime(),
     endsAtBlock: listing.bids.find((bid) => bid.held)?.settleDeadlineBlocks,
     public: listing.public,

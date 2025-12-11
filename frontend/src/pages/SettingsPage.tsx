@@ -77,11 +77,15 @@ export function SettingsPageInternal({
             </FieldLabel>
             <Textarea
               id="additional-contact-methods"
-              placeholder="Add ways outside of Nostr DMs that you can be contacted when winning e.g. an email address"
+              placeholder="satoshin@gmx.com"
               className="resize-none"
               value={contactInfo}
               onChange={(e) => setContactInfo(e.target.value)}
             />
+            <FieldDescription>
+              Add ways outside of Nostr DMs that you can be contacted on auction
+              end by the winner/seller e.g. an email address
+            </FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor="receive-only-connection-secret">

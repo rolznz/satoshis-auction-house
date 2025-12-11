@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
@@ -7,9 +8,15 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { useUserSettings } from "@/lib/hooks/useUserSettings";
+import { ChevronDownIcon } from "lucide-react";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -23,6 +30,9 @@ export function NewListingPage() {
   const [imageUrl, setImageUrl] = React.useState("");
   const [startingBid, setStartingBid] = React.useState("");
   const [isPublic, setPublic] = React.useState(true);
+  const [hasFixedEndDate, setFixedEndDate] = React.useState(false);
+  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
+  const [endsAt, setEndsAt] = React.useState<Date>(new Date());
 
   React.useEffect(() => {
     if (token && userSettings && !userSettings.receiveOnlyConnectionSecret) {
@@ -33,6 +43,10 @@ export function NewListingPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (hasFixedEndDate && !endsAt) {
+      toast.error("Please set the ends at date");
+      return;
+    }
     try {
       const response = await fetch("/api/listings", {
         method: "POST",
@@ -42,6 +56,7 @@ export function NewListingPage() {
           imageUrl,
           startingBid: parseInt(startingBid),
           public: isPublic,
+          endsAt: hasFixedEndDate ? endsAt.getTime() : undefined,
         }),
         headers: {
           Authorization: `Bearer ${token}`,
@@ -116,7 +131,7 @@ export function NewListingPage() {
             />
             <FieldDescription>
               Ensure your item is sold for a price equal or higher than this
-              value.
+              value
             </FieldDescription>
           </Field>
           <Field>
@@ -131,9 +146,104 @@ export function NewListingPage() {
               </FieldLabel>
             </Field>
             <FieldDescription>
-              Public listings will be listed on the homepage.
+              Public listings will be listed on the homepage
             </FieldDescription>
           </Field>
+
+          <Field>
+            <Field orientation="horizontal">
+              <Checkbox
+                id="fixed-end-date"
+                checked={hasFixedEndDate}
+                onCheckedChange={(e) => setFixedEndDate(!!e)}
+              />
+              <FieldLabel htmlFor="fixed-end-date" className="font-normal">
+                Fixed End Date
+              </FieldLabel>
+            </Field>
+            <FieldDescription>
+              Set a fixed end date and time for the auction
+            </FieldDescription>
+          </Field>
+
+          {hasFixedEndDate && (
+            <Field>
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-3">
+                  <Popover
+                    open={datePickerOpen}
+                    onOpenChange={setDatePickerOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        id="date-picker"
+                        className="w-32 justify-between font-normal"
+                      >
+                        {endsAt ? endsAt.toLocaleDateString() : "Select date"}
+                        <ChevronDownIcon />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto overflow-hidden p-0"
+                      align="start"
+                    >
+                      <Calendar
+                        mode="single"
+                        required
+                        disabled={{ before: new Date() }}
+                        selected={endsAt}
+                        captionLayout="dropdown"
+                        onSelect={(date) => {
+                          setEndsAt(date);
+                          setDatePickerOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {/* <Label htmlFor="time-picker" className="px-1">
+                  Time
+                </Label> */}
+                  <Input
+                    type="time"
+                    id="time-picker"
+                    step="1"
+                    required
+                    value={endsAt?.toTimeString().slice(0, 8)}
+                    onChange={(e) => {
+                      const endsAtTime = e.target.value;
+                      if (endsAt && endsAtTime) {
+                        const [hours, minutes, seconds = "0"] =
+                          endsAtTime.split(":");
+                        const newDate = new Date(endsAt);
+                        newDate.setHours(
+                          parseInt(hours),
+                          parseInt(minutes),
+                          parseInt(seconds)
+                        );
+                        setEndsAt(newDate);
+                      }
+                    }}
+                    className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  />
+                </div>
+              </div>
+              {endsAt && (
+                <FieldDescription>
+                  Auction will end at {new Date(endsAt).toISOString()} UTC
+                </FieldDescription>
+              )}
+              {!endsAt && (
+                <FieldDescription>Please select a date.</FieldDescription>
+              )}
+              <FieldDescription>
+                Note: auction will be automatically extended if any payment is
+                made within the last few minutes.
+              </FieldDescription>
+            </Field>
+          )}
 
           <Field orientation="horizontal">
             <Button type="submit">Submit</Button>

@@ -16,6 +16,7 @@ export function HomePage() {
   const loggedIn = useAppStore((store) => !!store.token);
   return (
     <>
+      <h1 className="mt-8 font-semibold text-xl">Active Listings</h1>
       <div className="w-full flex flex-wrap p-4 gap-4">
         {listings?.map((listing) => (
           <Link to={`/listings/${listing.id}`} key={listing.id}>
@@ -40,7 +41,7 @@ export function HomePage() {
                   <span className="font-mono">{listing.bids.length}</span> bids
                 </CardDescription>
               </CardContent>
-              {listing.endsAt && (
+              {listing.endsAt && listing.endsAt > Date.now() && (
                 <CardContent className="flex justify-center -mt-6 -mb-4">
                   <p className="font-semibold text-xs">
                     Ends in ~
