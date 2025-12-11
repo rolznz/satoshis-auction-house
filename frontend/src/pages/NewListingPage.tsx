@@ -306,8 +306,8 @@ export function NewListingPage() {
                 <FieldDescription>Please select a date.</FieldDescription>
               )}
               <FieldDescription>
-                Note: auction will be automatically extended if any payment is
-                made within the last few minutes.
+                Note: auction will be automatically extended by two minutes if
+                any payment is made within the last few minutes.
               </FieldDescription>
             </Field>
           )}

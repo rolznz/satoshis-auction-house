@@ -147,7 +147,7 @@ export class NWCConnectionManager {
           const TWO_MINUTES = 2 * 60 * 1000;
           if (
             bid.listing.endsAt &&
-            Date.now() - bid.listing.endsAt.getTime() < TWO_MINUTES
+            bid.listing.endsAt.getTime() - Date.now() < TWO_MINUTES
           ) {
             console.info("Extending nearly-closed listing", {
               bid_id: bid.id,
