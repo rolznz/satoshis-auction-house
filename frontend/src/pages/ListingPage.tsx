@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { useListing } from "@/lib/hooks/useListing";
+import { login } from "@/lib/login";
 import { Payment } from "@getalby/bitcoin-connect-react";
 import { Loader2Icon } from "lucide-react";
 import { nip19 } from "nostr-tools";
@@ -152,7 +153,10 @@ export function ListingPage() {
               (!listing.endsAt || listing.endsAt > Date.now()) && (
                 <Button
                   className="w-full"
-                  onClick={() => {
+                  onClick={async () => {
+                    if (!token) {
+                      await login();
+                    }
                     setBidDrawerOpen(true);
                     setBidAmount((listing.currentPrice + 1).toString());
                   }}
