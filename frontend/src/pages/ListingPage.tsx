@@ -75,9 +75,15 @@ export function ListingPage() {
         invoice,
       });
       setSetPaidFunction(() => setPaid);
-      alert(
-        "This is a HOLD invoice. Pay it with your wallet and then return to this page and wait for your bid to be updated."
+      const shownHOLDInvoiceWarning = localStorage.getItem(
+        "shown_hold_invoice_warning"
       );
+      if (!shownHOLDInvoiceWarning) {
+        alert(
+          "This is a HOLD invoice. Pay it with your wallet and then return to this page and wait for your bid to be updated."
+        );
+        localStorage.setItem("shown_hold_invoice_warning", "true");
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to create bid: ", {
