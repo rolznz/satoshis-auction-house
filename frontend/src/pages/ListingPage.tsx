@@ -171,7 +171,14 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
               </Avatar>
             </ItemMedia>
             <ItemContent>
-              <ItemTitle>{sellerNostrProfile.name}</ItemTitle>
+              <a
+                href={`https://nostr.com/${nip19.npubEncode(
+                  listing.sellerPubkey
+                )}`}
+                target="_blank"
+              >
+                <ItemTitle>{sellerNostrProfile.name}</ItemTitle>
+              </a>
               <ItemDescription>
                 {formatDistance(listing.createdAt, new Date(), {
                   addSuffix: true,
@@ -401,7 +408,13 @@ function BidItem({ bid, leading }: { bid: Bid; leading: boolean }) {
       <ItemContent>
         <ItemTitle className="flex justify-between items-center w-full">
           <span>
-            {bidderNostrProfile?.name || "Evil Rabbit"} ⚡{" "}
+            <a
+              href={`https://nostr.com/${nip19.npubEncode(bid.bidderPubkey)}`}
+              target="_blank"
+            >
+              {bidderNostrProfile?.name || "Evil Rabbit"}
+            </a>{" "}
+            ⚡{" "}
             <span className="font-mono text-lg">
               {new Intl.NumberFormat().format(bid.amount)}
             </span>{" "}
@@ -441,7 +454,13 @@ function Winner({ winnerPubkey, bid }: { winnerPubkey: string; bid: Bid }) {
         </ItemMedia>
         <ItemContent>
           <ItemTitle>
-            {winnerNostrProfile?.name || "Evil Rabbit"} ⚡{" "}
+            <a
+              href={`https://nostr.com/${nip19.npubEncode(bid.bidderPubkey)}`}
+              target="_blank"
+            >
+              {winnerNostrProfile?.name || "Evil Rabbit"}
+            </a>{" "}
+            ⚡{" "}
             <span className="font-mono text-lg">
               {new Intl.NumberFormat().format(bid.amount)}
             </span>{" "}
