@@ -10,6 +10,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Drawer,
   DrawerContent,
   DrawerDescription,
@@ -35,7 +44,12 @@ import { launchPaymentModal } from "@getalby/bitcoin-connect-react";
 import { SendPaymentResponse } from "@webbtc/webln-types";
 import { formatDistance } from "date-fns";
 import { Loader2Icon } from "lucide-react";
-import { nip19 } from "nostr-tools";
+import {
+  finalizeEvent,
+  generateSecretKey,
+  getPublicKey,
+  nip19,
+} from "nostr-tools";
 import { QRCodeSVG } from "qrcode.react";
 import React from "react";
 import { useParams } from "react-router-dom";
@@ -256,23 +270,73 @@ export function ListingPageInternal({
               )}
             {!listing.endedAt &&
               (!listing.startsAt || listing.startsAt < Date.now()) &&
-              (!listing.endsAt || listing.endsAt > Date.now()) && (
+              (!listing.endsAt || listing.endsAt > Date.now()) &&
+              (token ? (
                 <Button
                   className="w-full"
                   onClick={async () => {
-                    if (!token) {
-                      const loginResult = await login();
-                      if (!loginResult) {
-                        return;
-                      }
-                    }
                     setBidAmount(listing.nextBidAmount.toString());
                     setBidDrawerOpen(true);
                   }}
                 >
                   Bid Now
                 </Button>
-              )}
+              ) : (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full">Bid Now</Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Login to continue</DialogTitle>
+                      <DialogDescription>
+                        You're one step away from making your first bid.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                      <DialogClose asChild>
+                        <Button
+                          className="w-full"
+                          onClick={async () => {
+                            const secretKey = generateSecretKey();
+                            const publicKey = getPublicKey(secretKey);
+                            window.nostr = {
+                              getPublicKey: () => Promise.resolve(publicKey),
+                              signEvent: (event) =>
+                                Promise.resolve(
+                                  finalizeEvent(event, secretKey)
+                                ),
+                            };
+                            const loginResult = await login();
+                            if (!loginResult) {
+                              return;
+                            }
+                            setBidAmount(listing.nextBidAmount.toString());
+                            setBidDrawerOpen(true);
+                          }}
+                        >
+                          Bid Anonymously
+                        </Button>
+                      </DialogClose>
+                      <DialogClose asChild>
+                        <Button
+                          className="w-full"
+                          onClick={async () => {
+                            const loginResult = await login();
+                            if (!loginResult) {
+                              return;
+                            }
+                            setBidAmount(listing.nextBidAmount.toString());
+                            setBidDrawerOpen(true);
+                          }}
+                        >
+                          Login / Signup
+                        </Button>
+                      </DialogClose>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              ))}
             {(listing.endedAt ||
               (listing.endsAt && listing.endsAt < Date.now())) && (
               <div className="w-full">
