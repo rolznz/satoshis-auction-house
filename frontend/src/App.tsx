@@ -3,6 +3,7 @@ import { HomePage } from "@/pages/HomePage";
 import { ListingPage } from "@/pages/ListingPage";
 import { NewListingPage } from "@/pages/NewListingPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { SlideshowPage } from "@/pages/SlideshowPage";
 import { Route, Routes } from "react-router-dom"; // Import routing components
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/listings/new" element={<NewListingPage />} />
         <Route path="/listings/:id" element={<ListingPage />} />
+        <Route path="/slideshow" element={<SlideshowPage />} />
       </Routes>
     </div>
   );

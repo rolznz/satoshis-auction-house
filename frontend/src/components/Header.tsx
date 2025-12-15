@@ -45,6 +45,9 @@ export function Header() {
                 <Link to="/listings/new">Create Listing</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link to="/slideshow">Slideshow</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link to="/settings">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

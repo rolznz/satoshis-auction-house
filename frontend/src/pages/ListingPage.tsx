@@ -72,10 +72,12 @@ export function ListingPage() {
 }
 export function ListingPageInternal({
   listing,
+  slideshow,
   setClaimPreimage,
 }: {
   listing: Listing;
-  setClaimPreimage: (preimage: string) => void;
+  slideshow?: boolean;
+  setClaimPreimage?: (preimage: string) => void;
 }) {
   const token = useAppStore((store) => store.token);
 
@@ -165,13 +167,15 @@ export function ListingPageInternal({
             src={listing.imageUrl || "/icon.svg"}
             className="w-full lg:w-64 h-64 object-cover"
           />
-          <div className="hidden lg:flex flex-col items-center justify-center">
-            Join the auction!
-            <QRCodeSVG
-              value={`${window.origin}/listings/${listing.id}`}
-              className="w-32 h-32 object-cover"
-            />
-          </div>
+          {slideshow && (
+            <div className="flex flex-col items-center justify-center">
+              Join the auction!
+              <QRCodeSVG
+                value={`${window.origin}/listings/${listing.id}`}
+                className="w-32 h-32 object-cover"
+              />
+            </div>
+          )}
         </CardContent>
         <CardHeader>
           <CardTitle>{listing.title}</CardTitle>
@@ -255,224 +259,226 @@ export function ListingPageInternal({
             )}
           </CardContent>
         )}
-        <CardFooter>
-          <Drawer
-            open={bidDrawerOpen}
-            onOpenChange={() => {
-              setBidDrawerOpen(false);
-            }}
-          >
-            {!listing.endedAt &&
-              listing.startsAt &&
-              listing.startsAt > Date.now() && (
-                <Button className="w-full" disabled>
-                  Auction Starts{" "}
-                  {formatDistance(listing.startsAt, Date.now(), {
-                    addSuffix: true,
-                  })}
-                </Button>
-              )}
-            {!listing.endedAt &&
-              (!listing.startsAt || listing.startsAt < Date.now()) &&
-              (!listing.endsAt || listing.endsAt > Date.now()) &&
-              (token ? (
-                <Button
-                  className="w-full"
-                  onClick={async () => {
-                    setBidAmount(listing.nextBidAmount.toString());
-                    setBidDrawerOpen(true);
-                  }}
-                >
-                  Bid Now
-                </Button>
-              ) : (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="w-full">Bid Now</Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                      <DialogTitle>Login to continue</DialogTitle>
-                      <DialogDescription>
-                        You're one step away from making your first bid.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4">
-                      <DialogClose asChild>
-                        <Button
-                          className="w-full"
-                          onClick={async () => {
-                            const secretKey = generateSecretKey();
-                            const publicKey = getPublicKey(secretKey);
-                            window.nostr = {
-                              getPublicKey: () => Promise.resolve(publicKey),
-                              signEvent: (event) =>
-                                Promise.resolve(
-                                  finalizeEvent(event, secretKey)
-                                ),
-                            };
-                            const loginResult = await login();
-                            if (!loginResult) {
-                              return;
-                            }
-                            setBidAmount(listing.nextBidAmount.toString());
-                            setBidDrawerOpen(true);
-                          }}
-                        >
-                          Bid Anonymously
-                        </Button>
-                      </DialogClose>
-                      <DialogClose asChild>
-                        <Button
-                          className="w-full"
-                          onClick={async () => {
-                            const loginResult = await login();
-                            if (!loginResult) {
-                              return;
-                            }
-                            setBidAmount(listing.nextBidAmount.toString());
-                            setBidDrawerOpen(true);
-                          }}
-                        >
-                          Login / Signup
-                        </Button>
-                      </DialogClose>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              ))}
-            {(listing.endedAt ||
-              (listing.endsAt && listing.endsAt < Date.now())) && (
-              <div className="w-full">
-                <Button disabled>Auction Ended</Button>
-                {listing.winnerPubkey && (
-                  <>
-                    <p className="break-all">
-                      <Winner
-                        winnerPubkey={listing.winnerPubkey}
-                        bid={listing.bids[0]}
-                        hasPin={!!listing.pin}
-                        setClaimPreimage={setClaimPreimage}
-                      />
-                    </p>
-
-                    {listing.pin && (
-                      <div className="mt-4">
-                        <p className="font-bold">🎉🎉🎉</p>
-                        <p className="mt-4">
-                          Send this pin:{" "}
-                          <span className="font-semibold">{listing.pin}</span>{" "}
-                          to your counterparty to prove your purchase and
-                          co-ordinate delivery.
-                        </p>
-                        <Item variant="outline" className="mt-2">
-                          <ItemMedia>
-                            <Avatar className="size-10">
-                              <AvatarImage
-                                src={
-                                  sellerNostrProfile?.picture ||
-                                  "https://github.com/evilrabbit.png"
-                                }
-                              />
-                              <AvatarFallback>
-                                {sellerNostrProfile?.name?.substring(0, 2) ||
-                                  "??"}
-                              </AvatarFallback>
-                            </Avatar>
-                          </ItemMedia>
-                          <ItemContent>
-                            <ItemTitle>
-                              Seller:{" "}
-                              {sellerNostrProfile?.name || "Satoshi Rabbit"}
-                            </ItemTitle>
-                            <ItemDescription>
-                              {nip19.npubEncode(listing.sellerPubkey)}
-                              <br />
-                              {listing.sellerContactInfo}
-                            </ItemDescription>
-                          </ItemContent>
-                        </Item>
-
-                        <WinnerContactInfo
-                          winnerPubkey={listing.winnerPubkey}
-                          winnerContactInfo={listing.winnerContactInfo}
-                        />
-                      </div>
-                    )}
-                  </>
+        {!slideshow && (
+          <CardFooter>
+            <Drawer
+              open={bidDrawerOpen}
+              onOpenChange={() => {
+                setBidDrawerOpen(false);
+              }}
+            >
+              {!listing.endedAt &&
+                listing.startsAt &&
+                listing.startsAt > Date.now() && (
+                  <Button className="w-full" disabled>
+                    Auction Starts{" "}
+                    {formatDistance(listing.startsAt, Date.now(), {
+                      addSuffix: true,
+                    })}
+                  </Button>
                 )}
-              </div>
-            )}
-            <DrawerContent>
-              {!creatingBid && (
-                <form onSubmit={createBid}>
-                  <div className="mx-auto w-full max-w-sm">
-                    <DrawerHeader>
-                      <DrawerTitle>Enter Bid</DrawerTitle>
-                      <DrawerDescription>
-                        Set the amount in sats you'd like to bid
-                      </DrawerDescription>
-                    </DrawerHeader>
-                    <div className="p-4 pb-0">
-                      <div className="flex gap-4">
-                        {[10, 50, 100].map((value) => (
+              {!listing.endedAt &&
+                (!listing.startsAt || listing.startsAt < Date.now()) &&
+                (!listing.endsAt || listing.endsAt > Date.now()) &&
+                (token ? (
+                  <Button
+                    className="w-full"
+                    onClick={async () => {
+                      setBidAmount(listing.nextBidAmount.toString());
+                      setBidDrawerOpen(true);
+                    }}
+                  >
+                    Bid Now
+                  </Button>
+                ) : (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full">Bid Now</Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-[425px]">
+                      <DialogHeader>
+                        <DialogTitle>Login to continue</DialogTitle>
+                        <DialogDescription>
+                          You're one step away from making your first bid.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="grid gap-4">
+                        <DialogClose asChild>
                           <Button
-                            key={value}
-                            className="flex-1 w-full h-full aspect-[1/1] text-[150%] font-medium font-mono"
-                            type="button"
-                            variant="secondary"
-                            onClick={() =>
-                              setBidAmount(
-                                Math.ceil(
-                                  parseInt(bidAmount) * (1 + value / 100)
-                                ).toString()
-                              )
-                            }
+                            className="w-full"
+                            onClick={async () => {
+                              const secretKey = generateSecretKey();
+                              const publicKey = getPublicKey(secretKey);
+                              window.nostr = {
+                                getPublicKey: () => Promise.resolve(publicKey),
+                                signEvent: (event) =>
+                                  Promise.resolve(
+                                    finalizeEvent(event, secretKey)
+                                  ),
+                              };
+                              const loginResult = await login();
+                              if (!loginResult) {
+                                return;
+                              }
+                              setBidAmount(listing.nextBidAmount.toString());
+                              setBidDrawerOpen(true);
+                            }}
                           >
-                            +{value}%
+                            Bid Anonymously
                           </Button>
-                        ))}
+                        </DialogClose>
+                        <DialogClose asChild>
+                          <Button
+                            className="w-full"
+                            onClick={async () => {
+                              const loginResult = await login();
+                              if (!loginResult) {
+                                return;
+                              }
+                              setBidAmount(listing.nextBidAmount.toString());
+                              setBidDrawerOpen(true);
+                            }}
+                          >
+                            Login / Signup
+                          </Button>
+                        </DialogClose>
                       </div>
-                      <div className="flex items-center justify-center space-x-2 mt-4">
-                        <div className="flex-1 text-center">
-                          <Input
-                            type="number"
-                            autoFocus
-                            value={bidAmount}
-                            onChange={(e) => setBidAmount(e.target.value)}
-                            className="!text-2xl h-14 font-mono"
-                            min={listing.nextBidAmount}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-center space-x-2 mt-4">
-                        <div className="flex-1 text-center">
-                          <Input
-                            value={bidComment}
-                            onChange={(e) => setBidComment(e.target.value)}
-                            placeholder="Enter a comment"
-                            maxLength={100}
-                          />
-                        </div>
-                      </div>
-                    </div>
+                    </DialogContent>
+                  </Dialog>
+                ))}
+              {(listing.endedAt ||
+                (listing.endsAt && listing.endsAt < Date.now())) && (
+                <div className="w-full">
+                  <Button disabled>Auction Ended</Button>
+                  {listing.winnerPubkey && (
+                    <>
+                      <p className="break-all">
+                        <Winner
+                          winnerPubkey={listing.winnerPubkey}
+                          bid={listing.bids[0]}
+                          hasPin={!!listing.pin}
+                          setClaimPreimage={setClaimPreimage}
+                        />
+                      </p>
 
-                    <DrawerFooter>
-                      <Button className="h-14 text-lg font-medium">
-                        PLACE BID
-                      </Button>
-                    </DrawerFooter>
-                  </div>
-                </form>
-              )}
-              {creatingBid && (
-                <div className="w-full h-32 flex items-center justify-center">
-                  <Loader2Icon className="animate-spin" />
+                      {listing.pin && (
+                        <div className="mt-4">
+                          <p className="font-bold">🎉🎉🎉</p>
+                          <p className="mt-4">
+                            Send this pin:{" "}
+                            <span className="font-semibold">{listing.pin}</span>{" "}
+                            to your counterparty to prove your purchase and
+                            co-ordinate delivery.
+                          </p>
+                          <Item variant="outline" className="mt-2">
+                            <ItemMedia>
+                              <Avatar className="size-10">
+                                <AvatarImage
+                                  src={
+                                    sellerNostrProfile?.picture ||
+                                    "https://github.com/evilrabbit.png"
+                                  }
+                                />
+                                <AvatarFallback>
+                                  {sellerNostrProfile?.name?.substring(0, 2) ||
+                                    "??"}
+                                </AvatarFallback>
+                              </Avatar>
+                            </ItemMedia>
+                            <ItemContent>
+                              <ItemTitle>
+                                Seller:{" "}
+                                {sellerNostrProfile?.name || "Satoshi Rabbit"}
+                              </ItemTitle>
+                              <ItemDescription>
+                                {nip19.npubEncode(listing.sellerPubkey)}
+                                <br />
+                                {listing.sellerContactInfo}
+                              </ItemDescription>
+                            </ItemContent>
+                          </Item>
+
+                          <WinnerContactInfo
+                            winnerPubkey={listing.winnerPubkey}
+                            winnerContactInfo={listing.winnerContactInfo}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               )}
-            </DrawerContent>
-          </Drawer>
-        </CardFooter>
+              <DrawerContent>
+                {!creatingBid && (
+                  <form onSubmit={createBid}>
+                    <div className="mx-auto w-full max-w-sm">
+                      <DrawerHeader>
+                        <DrawerTitle>Enter Bid</DrawerTitle>
+                        <DrawerDescription>
+                          Set the amount in sats you'd like to bid
+                        </DrawerDescription>
+                      </DrawerHeader>
+                      <div className="p-4 pb-0">
+                        <div className="flex gap-4">
+                          {[10, 50, 100].map((value) => (
+                            <Button
+                              key={value}
+                              className="flex-1 w-full h-full aspect-[1/1] text-[150%] font-medium font-mono"
+                              type="button"
+                              variant="secondary"
+                              onClick={() =>
+                                setBidAmount(
+                                  Math.ceil(
+                                    parseInt(bidAmount) * (1 + value / 100)
+                                  ).toString()
+                                )
+                              }
+                            >
+                              +{value}%
+                            </Button>
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-center space-x-2 mt-4">
+                          <div className="flex-1 text-center">
+                            <Input
+                              type="number"
+                              autoFocus
+                              value={bidAmount}
+                              onChange={(e) => setBidAmount(e.target.value)}
+                              className="!text-2xl h-14 font-mono"
+                              min={listing.nextBidAmount}
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-center space-x-2 mt-4">
+                          <div className="flex-1 text-center">
+                            <Input
+                              value={bidComment}
+                              onChange={(e) => setBidComment(e.target.value)}
+                              placeholder="Enter a comment"
+                              maxLength={100}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <DrawerFooter>
+                        <Button className="h-14 text-lg font-medium">
+                          PLACE BID
+                        </Button>
+                      </DrawerFooter>
+                    </div>
+                  </form>
+                )}
+                {creatingBid && (
+                  <div className="w-full h-32 flex items-center justify-center">
+                    <Loader2Icon className="animate-spin" />
+                  </div>
+                )}
+              </DrawerContent>
+            </Drawer>
+          </CardFooter>
+        )}
       </Card>
       <div className="flex-1 flex flex-col gap-2">
         {listing.bids.map((bid, index) => (
@@ -554,7 +560,7 @@ function Winner({
   winnerPubkey: string;
   bid: Bid;
   hasPin: boolean;
-  setClaimPreimage: (preimage: string) => void;
+  setClaimPreimage?: (preimage: string) => void;
 }) {
   const isLoggedIn = !!useAppStore((store) => store.token);
   const winnerNostrProfile = useNostrProfile(winnerPubkey);
@@ -598,21 +604,23 @@ function Winner({
         {!isLoggedIn && !hasPin && (
           <ItemActions>
             <Button size="sm">Login to claim</Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const preimage = prompt(
-                  "Enter your payment preimage from your lightning wallet"
-                );
-                if (!preimage) {
-                  return;
-                }
-                setClaimPreimage(preimage);
-              }}
-            >
-              Claim with preimage
-            </Button>
+            {setClaimPreimage && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const preimage = prompt(
+                    "Enter your payment preimage from your lightning wallet"
+                  );
+                  if (!preimage) {
+                    return;
+                  }
+                  setClaimPreimage(preimage);
+                }}
+              >
+                Claim with preimage
+              </Button>
+            )}
           </ItemActions>
         )}
       </Item>
