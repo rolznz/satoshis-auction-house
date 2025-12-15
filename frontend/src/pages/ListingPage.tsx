@@ -232,6 +232,17 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
             }}
           >
             {!listing.endedAt &&
+              listing.startsAt &&
+              listing.startsAt > Date.now() && (
+                <Button className="w-full" disabled>
+                  Auction Starts{" "}
+                  {formatDistance(listing.startsAt, Date.now(), {
+                    addSuffix: true,
+                  })}
+                </Button>
+              )}
+            {!listing.endedAt &&
+              (!listing.startsAt || listing.startsAt < Date.now()) &&
               (!listing.endsAt || listing.endsAt > Date.now()) && (
                 <Button
                   className="w-full"
@@ -289,7 +300,7 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
                           <ItemContent>
                             <ItemTitle>
                               Seller:{" "}
-                              {sellerNostrProfile?.name || "Evil Rabbit"}
+                              {sellerNostrProfile?.name || "Satoshi Rabbit"}
                             </ItemTitle>
                             <ItemDescription>
                               {nip19.npubEncode(listing.sellerPubkey)}
@@ -425,7 +436,7 @@ function BidItem({
               href={`https://nostr.com/${nip19.npubEncode(bid.bidderPubkey)}`}
               target="_blank"
             >
-              {bidderNostrProfile?.name || "Evil Rabbit"}
+              {bidderNostrProfile?.name || "Satoshi Rabbit"}
             </a>{" "}
             ⚡{" "}
             <span className="font-mono text-lg">
@@ -472,7 +483,7 @@ function Winner({ winnerPubkey, bid }: { winnerPubkey: string; bid: Bid }) {
               href={`https://nostr.com/${nip19.npubEncode(bid.bidderPubkey)}`}
               target="_blank"
             >
-              {winnerNostrProfile?.name || "Evil Rabbit"}
+              {winnerNostrProfile?.name || "Satoshi Rabbit"}
             </a>{" "}
             ⚡{" "}
             <span className="font-mono text-lg">
@@ -515,7 +526,7 @@ function WinnerContactInfo({
       </ItemMedia>
       <ItemContent>
         <ItemTitle>
-          Winner: {winnerNostrProfile?.name || "Evil Rabbit"}
+          Winner: {winnerNostrProfile?.name || "Satoshi Rabbit"}
         </ItemTitle>
         <ItemDescription>
           {nip19.npubEncode(winnerPubkey)}

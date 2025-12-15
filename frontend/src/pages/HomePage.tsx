@@ -25,6 +25,7 @@ import { Link } from "react-router-dom";
 export function HomePage() {
   const { data: listings } = useListings();
   const { data: pastListings } = useListings({ past: true });
+  const { data: upcomingListings } = useListings({ future: true });
   const loggedIn = useAppStore((store) => !!store.token);
   return (
     <>
@@ -46,6 +47,16 @@ export function HomePage() {
             {!loggedIn && <Button onClick={login}>Create Listing</Button>}
           </div>
         </div>
+      )}
+      {upcomingListings && (
+        <>
+          <h1 className="mt-8 font-semibold text-xl">Upcoming Listings</h1>
+          <div className="w-full flex flex-wrap p-4 gap-4 items-center justify-center">
+            {upcomingListings.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </div>
+        </>
       )}
       {pastListings && (
         <>
@@ -111,9 +122,35 @@ function ListingCard({ listing }: { listing: Listing }) {
             <ItemContent>
               <ItemTitle>{sellerNostrProfile.name}</ItemTitle>
               <ItemDescription>
-                {formatDistance(listing.createdAt, new Date(), {
-                  addSuffix: true,
-                })}
+                {listing.endedAt ? (
+                  <>
+                    Ended{" "}
+                    {formatDistance(listing.endedAt, new Date(), {
+                      addSuffix: true,
+                    })}
+                  </>
+                ) : listing.startsAt && listing.startsAt > Date.now() ? (
+                  <>
+                    Starts{" "}
+                    {formatDistance(listing.startsAt, new Date(), {
+                      addSuffix: true,
+                    })}
+                  </>
+                ) : listing.bids.length ? (
+                  <>
+                    Last bid{" "}
+                    {formatDistance(listing.bids[0].createdAt, new Date(), {
+                      addSuffix: true,
+                    })}
+                  </>
+                ) : (
+                  <>
+                    Created{" "}
+                    {formatDistance(listing.createdAt, new Date(), {
+                      addSuffix: true,
+                    })}
+                  </>
+                )}
               </ItemDescription>
             </ItemContent>
           </Item>

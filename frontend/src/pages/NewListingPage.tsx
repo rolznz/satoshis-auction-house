@@ -31,12 +31,18 @@ export function NewListingPage() {
   const [imageUrl, setImageUrl] = React.useState("");
   const [startingBid, setStartingBid] = React.useState("");
   const [isPublic, setPublic] = React.useState(true);
-  const [hasFixedEndDate, setFixedEndDate] = React.useState(false);
+  const [hasFixedStartDate, setHasFixedStartDate] = React.useState(false);
+  const [hasFixedEndDate, setHasFixedEndDate] = React.useState(false);
   const [hasMinimumNextBid, setHasMinimumNextBid] = React.useState(false);
   const [minimumBidAbsolute, setMinimumBidAbsolute] = React.useState("");
   const [minimumBidPercentage, setMinimumBidPercentage] = React.useState("");
   const [datePickerOpen, setDatePickerOpen] = React.useState(false);
-  const [endsAt, setEndsAt] = React.useState<Date>(new Date());
+  const [startsAt, setStartsAt] = React.useState<Date>(
+    new Date(Math.floor(Date.now() / 1000) * 1000)
+  );
+  const [endsAt, setEndsAt] = React.useState<Date>(
+    new Date(Math.floor(Date.now() / 1000) * 1000)
+  );
 
   React.useEffect(() => {
     if (token && userSettings && !userSettings.receiveOnlyConnectionSecret) {
@@ -51,6 +57,10 @@ export function NewListingPage() {
       toast.error("Please set the ends at date");
       return;
     }
+    if (hasFixedStartDate && !startsAt) {
+      toast.error("Please set the starts at date");
+      return;
+    }
     try {
       const response = await fetch("/api/listings", {
         method: "POST",
@@ -61,6 +71,7 @@ export function NewListingPage() {
           startingBid: parseInt(startingBid),
           public: isPublic,
           endsAt: hasFixedEndDate ? endsAt.getTime() : undefined,
+          startsAt: hasFixedStartDate ? startsAt.getTime() : undefined,
           minimumBidAbsolute: hasMinimumNextBid
             ? parseInt(minimumBidAbsolute)
             : undefined,
@@ -220,16 +231,107 @@ export function NewListingPage() {
           <Field>
             <Field orientation="horizontal">
               <Checkbox
+                id="fixed-start-date"
+                checked={hasFixedStartDate}
+                onCheckedChange={(e) => setHasFixedStartDate(!!e)}
+              />
+              <FieldLabel htmlFor="fixed-start-date" className="font-normal">
+                Fixed Start Date
+              </FieldLabel>
+            </Field>
+            <FieldDescription>
+              Set a fixed start date and time for the auction. No-one can place
+              bids before this time
+            </FieldDescription>
+          </Field>
+
+          {hasFixedStartDate && (
+            <Field>
+              <div className="flex gap-4">
+                <div className="flex flex-col gap-3">
+                  <Popover
+                    open={datePickerOpen}
+                    onOpenChange={setDatePickerOpen}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        id="date-picker"
+                        className="w-32 justify-between font-normal"
+                      >
+                        {startsAt
+                          ? startsAt.toLocaleDateString()
+                          : "Select date"}
+                        <ChevronDownIcon />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-auto overflow-hidden p-0"
+                      align="start"
+                    >
+                      <Calendar
+                        mode="single"
+                        required
+                        disabled={{ before: new Date() }}
+                        selected={startsAt}
+                        captionLayout="dropdown"
+                        onSelect={(date) => {
+                          setStartsAt(date);
+                          setDatePickerOpen(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Input
+                    type="time"
+                    id="time-picker"
+                    step="1"
+                    required
+                    value={startsAt?.toTimeString().slice(0, 8)}
+                    onChange={(e) => {
+                      const startsAtTime = e.target.value;
+                      if (startsAt && startsAtTime) {
+                        const [hours, minutes, seconds = "0"] =
+                          startsAtTime.split(":");
+                        const newDate = new Date(startsAt);
+                        newDate.setHours(
+                          parseInt(hours),
+                          parseInt(minutes),
+                          parseInt(seconds)
+                        );
+                        setStartsAt(newDate);
+                      }
+                    }}
+                    className="bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+                  />
+                </div>
+              </div>
+              {startsAt && (
+                <FieldDescription>
+                  Auction will start at {new Date(startsAt).toISOString()} UTC
+                </FieldDescription>
+              )}
+              {!startsAt && (
+                <FieldDescription>Please select a date.</FieldDescription>
+              )}
+            </Field>
+          )}
+          <Field>
+            <Field orientation="horizontal">
+              <Checkbox
                 id="fixed-end-date"
                 checked={hasFixedEndDate}
-                onCheckedChange={(e) => setFixedEndDate(!!e)}
+                onCheckedChange={(e) => setHasFixedEndDate(!!e)}
               />
               <FieldLabel htmlFor="fixed-end-date" className="font-normal">
                 Fixed End Date
               </FieldLabel>
             </Field>
             <FieldDescription>
-              Set a fixed end date and time for the auction
+              Set a fixed end date and time for the auction. No-one can place
+              bids after this time
             </FieldDescription>
           </Field>
 
@@ -270,9 +372,6 @@ export function NewListingPage() {
                   </Popover>
                 </div>
                 <div className="flex flex-col gap-3">
-                  {/* <Label htmlFor="time-picker" className="px-1">
-                  Time
-                </Label> */}
                   <Input
                     type="time"
                     id="time-picker"

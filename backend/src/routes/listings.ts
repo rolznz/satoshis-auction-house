@@ -15,6 +15,7 @@ type NewListing = {
   startingBid?: number;
   public: boolean;
   endsAt?: number;
+  startsAt?: number;
   minimumBidAbsolute?: string;
   minimumBidPercentage?: string;
 };
@@ -70,6 +71,9 @@ export async function listingRoutes(
             startingBid: newListing.startingBid || 1,
             public: newListing.public,
             endsAt: newListing.endsAt ? new Date(newListing.endsAt) : undefined,
+            startsAt: newListing.startsAt
+              ? new Date(newListing.startsAt)
+              : undefined,
             sellerId: user.id,
             pin: generatePin(),
             minimumBidAbsolute: newListing.minimumBidAbsolute
@@ -95,7 +99,7 @@ export async function listingRoutes(
     }
   );
 
-  fastify.get<{ Querystring: { past?: string } }>(
+  fastify.get<{ Querystring: { past?: string; future?: string } }>(
     "/",
     async (request, reply) => {
       try {
@@ -106,12 +110,18 @@ export async function listingRoutes(
         } catch (error) {}
 
         const isPast = request.query.past;
+        const isFuture = request.query.future;
 
         const listings = await options.prisma.listing.findMany({
           where: {
             public: true,
-
-            ...(isPast
+            ...(isFuture
+              ? {
+                  startsAt: {
+                    gt: new Date(),
+                  },
+                }
+              : isPast
               ? {
                   endedAt: {
                     not: null,
@@ -119,12 +129,26 @@ export async function listingRoutes(
                 }
               : {
                   endedAt: null,
-                  OR: [
-                    { endsAt: null },
+                  AND: [
                     {
-                      endsAt: {
-                        gt: new Date(),
-                      },
+                      OR: [
+                        { endsAt: null },
+                        {
+                          endsAt: {
+                            gt: new Date(),
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      OR: [
+                        { startsAt: null },
+                        {
+                          startsAt: {
+                            lt: new Date(),
+                          },
+                        },
+                      ],
                     },
                   ],
                 }),
@@ -209,6 +233,12 @@ export async function listingRoutes(
             },
           },
         });
+
+        if (listing.startsAt && listing.startsAt.getTime() > Date.now()) {
+          return reply
+            .code(400)
+            .send({ message: "Auction has not started yet" });
+        }
 
         // TODO: extract duplicated code
         let nextBidAmount = listing.startingBid;
@@ -338,6 +368,13 @@ function mapListing(
     endsInMinutes = Math.ceil((endsAt - Date.now()) / 1000 / 60);
   }
 
+  let startsInMinutes: number | undefined;
+  if (listing.startsAt && listing.startsAt.getTime() > Date.now()) {
+    startsInMinutes = Math.ceil(
+      (listing.startsAt.getTime() - Date.now()) / 1000 / 60
+    );
+  }
+
   return {
     id: listing.id,
     createdAt: listing.createdAt.getTime(),
@@ -353,12 +390,13 @@ function mapListing(
     winnerPubkey: listing.winner?.pubkey,
     startingBidAmount: listing.startingBid,
     nextBidAmount,
-    startsAt: listing.startsAt,
-    endedAt: listing.endedAt,
+    startsAt: listing.startsAt?.getTime(),
+    endedAt: listing.endedAt?.getTime(),
     endsAt,
     hasFixedEnd: !!listing.endsAt,
     endsAtBlock: heldBid?.settleDeadlineBlocks,
     endsInMinutes,
+    startsInMinutes,
     public: listing.public,
     bids: listing.bids.map((bid) => {
       return {
