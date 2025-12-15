@@ -74,7 +74,7 @@ function ListingCard({ listing }: { listing: Listing }) {
         </CardContent>
         <CardHeader>
           <CardTitle>{listing.title}</CardTitle>
-          <CardDescription className="whitespace-pre-wrap line-clamp-3">
+          <CardDescription className="whitespace-pre-wrap line-clamp-3 h-14">
             {listing.description || "No description provided"}
           </CardDescription>
         </CardHeader>

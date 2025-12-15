@@ -130,7 +130,7 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
   const endsInMinutes = listing.endsInMinutes;
 
   return (
-    <div className="p-4 flex flex-1 flex-wrap w-full gap-4">
+    <div className="p-4 flex flex-1 flex-wrap max-lg:flex-col w-full gap-4">
       <Card className="flex-1 rounded-md">
         <CardContent className="flex items-start justify-between">
           <img
