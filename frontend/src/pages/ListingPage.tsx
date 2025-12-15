@@ -41,6 +41,7 @@ import { useListing } from "@/lib/hooks/useListing";
 import { useNostrProfile } from "@/lib/hooks/useNostrProfile";
 import { login } from "@/lib/login";
 import { Bid, Listing } from "@/lib/types";
+import { cn } from "@/lib/utils";
 import { launchPaymentModal } from "@getalby/bitcoin-connect-react";
 import { SendPaymentResponse } from "@webbtc/webln-types";
 import { formatDistance } from "date-fns";
@@ -161,7 +162,7 @@ export function ListingPageInternal({
 
   return (
     <div className="p-4 flex flex-1 flex-wrap max-lg:flex-col w-full gap-4">
-      <Card className="flex-1 rounded-md">
+      <Card className={cn("flex-1 rounded-md", slideshow && "pb-0")}>
         <CardContent className="flex items-start justify-between">
           <img
             src={listing.imageUrl || "/icon.svg"}
@@ -195,6 +196,7 @@ export function ListingPageInternal({
             <span className="font-mono">{listing.bids.length}</span> bids
           </CardDescription>
         </CardContent>
+        <div className="flex-1" />
         {sellerNostrProfile && (
           <Item variant="muted">
             <ItemMedia>
@@ -222,7 +224,6 @@ export function ListingPageInternal({
             </ItemContent>
           </Item>
         )}
-        <div className="flex-1" />
         {listing.endsAt && listing.endsAt > Date.now() && !listing.endedAt && (
           <CardContent className="flex justify-center">
             {!!endsInMinutes && (

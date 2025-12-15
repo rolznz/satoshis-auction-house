@@ -23,53 +23,55 @@ export function Header() {
         <img src={title} className="h-16" alt="Satoshi's Auction House" />
       </Link>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="absolute top-4 right-4">
-            <MenuIcon />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56" align="start">
-          {location.pathname !== "/" && (
-            <DropdownMenuItem asChild>
-              <Link to="/">Home</Link>
-            </DropdownMenuItem>
-          )}
-          {!loggedIn && (
-            <DropdownMenuItem onClick={login}>Login</DropdownMenuItem>
-          )}
+      {location.pathname !== "/slideshow" && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="absolute top-4 right-4">
+              <MenuIcon />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="start">
+            {location.pathname !== "/" && (
+              <DropdownMenuItem asChild>
+                <Link to="/">Home</Link>
+              </DropdownMenuItem>
+            )}
+            {!loggedIn && (
+              <DropdownMenuItem onClick={login}>Login</DropdownMenuItem>
+            )}
 
-          {loggedIn && (
-            <>
-              <DropdownMenuItem asChild>
-                <Link to="/listings/new">Create Listing</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/slideshow">Slideshow</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to="/settings">Settings</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <a
-                  href="https://github.com/rolznz/satoshis-auction-house"
-                  target="_blank"
+            {loggedIn && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link to="/listings/new">Create Listing</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/slideshow">Slideshow</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/settings">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a
+                    href="https://github.com/rolznz/satoshis-auction-house"
+                    target="_blank"
+                  >
+                    About
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                  }}
                 >
-                  About
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => {
-                  logout();
-                  navigate("/");
-                }}
-              >
-                Log out
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+                  Log out
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </header>
   );
 }

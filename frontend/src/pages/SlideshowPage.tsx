@@ -8,7 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useListings } from "@/lib/hooks/useListings";
 import { ListingPageInternal } from "@/pages/ListingPage";
-import React from "react";
+import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -20,7 +20,12 @@ export function SlideshowPage() {
   if (!keyword || !duration) {
     return <NewSlideshowPage />;
   }
-  return <SlideshowPageInternal keyword={keyword} duration={duration} />;
+  const durationValue = parseInt(duration);
+  if (isNaN(durationValue)) {
+    return <p>Invalid duration</p>;
+  }
+
+  return <SlideshowPageInternal keyword={keyword} duration={durationValue} />;
 }
 
 function SlideshowPageInternal({
@@ -28,7 +33,7 @@ function SlideshowPageInternal({
   duration,
 }: {
   keyword: string;
-  duration: string;
+  duration: number;
 }) {
   // TODO: filter by keyword serverside
   const [currentIndex, setCurrentIndex] = React.useState(0);
@@ -36,7 +41,7 @@ function SlideshowPageInternal({
   React.useEffect(() => {
     const timeout = setInterval(() => {
       setCurrentIndex((current) => current + 1);
-    }, parseInt(duration));
+    }, duration * 1000);
     return () => {
       clearInterval(timeout);
     };
@@ -60,10 +65,48 @@ function SlideshowPageInternal({
   }
 
   return (
-    <ListingPageInternal
-      listing={keywordListings[currentIndex % keywordListings.length]}
-      slideshow
-    />
+    <>
+      <p className="text-muted-foreground font-mono text-xs">
+        Listing {(currentIndex % keywordListings.length) + 1} /{" "}
+        {keywordListings.length}
+      </p>
+      <CountdownTimer index={currentIndex} duration={duration} />
+      <ListingPageInternal
+        listing={keywordListings[currentIndex % keywordListings.length]}
+        slideshow
+      />
+    </>
+  );
+}
+
+function CountdownTimer({
+  duration,
+  index,
+}: {
+  index: number;
+  duration: number;
+}) {
+  const [prevIndex, setPrevIndex] = useState(index);
+  const [remaining, setRemaining] = useState(duration);
+  React.useEffect(() => {
+    if (prevIndex !== index) {
+      setRemaining(duration);
+      setPrevIndex(index);
+    }
+  }, [duration, index, prevIndex]);
+  React.useEffect(() => {
+    const timeout = setInterval(() => {
+      setRemaining((current) => current - 1);
+    }, 1000);
+    return () => {
+      clearInterval(timeout);
+    };
+  }, [duration, index]);
+
+  return (
+    <p className="text-muted-foreground font-mono text-xs mt-2">
+      Displaying next listing in {remaining} seconds
+    </p>
   );
 }
 
@@ -81,7 +124,7 @@ function NewSlideshowPage() {
     }
     setUrlParams({
       keyword,
-      duration: (durationSeconds * 1000).toString(),
+      duration,
     });
   }
 
