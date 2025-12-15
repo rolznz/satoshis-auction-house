@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Field,
   FieldDescription,
@@ -18,6 +19,7 @@ export function SlideshowPage() {
 
   const keyword = urlParams.get("keyword");
   const duration = urlParams.get("duration");
+  const future = urlParams.get("future");
   if (!keyword || !duration) {
     return <NewSlideshowPage />;
   }
@@ -26,15 +28,23 @@ export function SlideshowPage() {
     return <p>Invalid duration</p>;
   }
 
-  return <SlideshowPageInternal keyword={keyword} duration={durationValue} />;
+  return (
+    <SlideshowPageInternal
+      keyword={keyword}
+      duration={durationValue}
+      future={future === "true"}
+    />
+  );
 }
 
 function SlideshowPageInternal({
   keyword,
   duration,
+  future,
 }: {
   keyword: string;
   duration: number;
+  future: boolean;
 }) {
   // TODO: filter by keyword serverside
   const [currentIndex, setCurrentIndex] = React.useState(0);
@@ -48,7 +58,7 @@ function SlideshowPageInternal({
     };
   }, [duration]);
 
-  const { data: activeListings } = useListings();
+  const { data: activeListings } = useListings({ future });
   const keywordListings = React.useMemo(
     () =>
       activeListings?.filter(
@@ -122,6 +132,7 @@ function NewSlideshowPage() {
   const [, setUrlParams] = useSearchParams();
   const [keyword, setKeyword] = React.useState("");
   const [duration, setDuration] = React.useState("");
+  const [showFutureListings, setShowFutureListings] = React.useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -133,6 +144,7 @@ function NewSlideshowPage() {
     setUrlParams({
       keyword,
       duration,
+      future: showFutureListings.toString(),
     });
   }
 
@@ -165,6 +177,21 @@ function NewSlideshowPage() {
             />
             <FieldDescription>
               How long a listing is shown in seconds
+            </FieldDescription>
+          </Field>
+          <Field>
+            <Field orientation="horizontal">
+              <Checkbox
+                id="future"
+                checked={showFutureListings}
+                onCheckedChange={(e) => setShowFutureListings(!!e)}
+              />
+              <FieldLabel htmlFor="fixed-end-date" className="font-normal">
+                Preview Upcoming Listings
+              </FieldLabel>
+            </Field>
+            <FieldDescription className="!text-wrap">
+              Display future listings only (e.g. to preview an upcoming event)
             </FieldDescription>
           </Field>
           <Field orientation="horizontal">
