@@ -107,13 +107,13 @@ export function ListingPageInternal({
       return;
     }
     const newBidId = listing.bids[0]?.id;
-    if (lastBidId && newBidId && newBidId !== lastBidId) {
+    if (newBidId && newBidId !== lastBidId) {
       localStorage.setItem("last_bid_" + listing.id, newBidId);
       toast("New bid!", {
         description: listing.bids[0].amount + " sats",
       });
+      setLastBidId(newBidId);
     }
-    setLastBidId(newBidId);
   }, [lastBidId, listing]);
 
   const sellerNostrProfile = useNostrProfile(listing?.sellerPubkey);
