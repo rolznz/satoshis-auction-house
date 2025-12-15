@@ -37,7 +37,8 @@ export function NewListingPage() {
   const [hasMinimumNextBid, setHasMinimumNextBid] = React.useState(false);
   const [minimumBidAbsolute, setMinimumBidAbsolute] = React.useState("");
   const [minimumBidPercentage, setMinimumBidPercentage] = React.useState("");
-  const [datePickerOpen, setDatePickerOpen] = React.useState(false);
+  const [startDatePickerOpen, setStartDatePickerOpen] = React.useState(false);
+  const [endDatePickerOpen, setEndDatePickerOpen] = React.useState(false);
   const [startsAt, setStartsAt] = React.useState<Date>(
     new Date(Math.floor(Date.now() / 1000) * 1000)
   );
@@ -257,8 +258,8 @@ export function NewListingPage() {
               <div className="flex gap-4">
                 <div className="flex flex-col gap-3">
                   <Popover
-                    open={datePickerOpen}
-                    onOpenChange={setDatePickerOpen}
+                    open={startDatePickerOpen}
+                    onOpenChange={setStartDatePickerOpen}
                   >
                     <PopoverTrigger asChild>
                       <Button
@@ -284,7 +285,7 @@ export function NewListingPage() {
                         captionLayout="dropdown"
                         onSelect={(date) => {
                           setStartsAt(date);
-                          setDatePickerOpen(false);
+                          setStartDatePickerOpen(false);
                         }}
                       />
                     </PopoverContent>
@@ -347,8 +348,8 @@ export function NewListingPage() {
               <div className="flex gap-4">
                 <div className="flex flex-col gap-3">
                   <Popover
-                    open={datePickerOpen}
-                    onOpenChange={setDatePickerOpen}
+                    open={endDatePickerOpen}
+                    onOpenChange={setEndDatePickerOpen}
                   >
                     <PopoverTrigger asChild>
                       <Button
@@ -372,7 +373,7 @@ export function NewListingPage() {
                         captionLayout="dropdown"
                         onSelect={(date) => {
                           setEndsAt(date);
-                          setDatePickerOpen(false);
+                          setEndDatePickerOpen(false);
                         }}
                       />
                     </PopoverContent>
