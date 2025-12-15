@@ -10,6 +10,8 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppStore } from "@/lib/hooks/useAppStore";
 import { UserSettings, useUserSettings } from "@/lib/hooks/useUserSettings";
+import { nip19 } from "nostr-tools";
+import { hexToBytes } from "nostr-tools/utils";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -66,6 +68,24 @@ export function SettingsPageInternal({
     }
     setSaving(false);
   }
+
+  // check for a newly-created nostr login account
+  const nsec = React.useMemo(() => {
+    const nostrLoginAccountsJSON = localStorage.getItem(
+      "__nostrlogin_accounts"
+    );
+    if (nostrLoginAccountsJSON) {
+      const accounts = JSON.parse(nostrLoginAccountsJSON) as [
+        { pubkey: string; sk: string; name: string; authMethod: string }
+      ];
+      if (accounts.length === 1) {
+        if (accounts[0].authMethod === "local") {
+          return nip19.nsecEncode(hexToBytes(accounts[0].sk));
+        }
+      }
+    }
+    return undefined;
+  }, []);
 
   return (
     <div className="w-full max-w-md p-4">
@@ -125,6 +145,20 @@ export function SettingsPageInternal({
           </Field>
         </FieldGroup>
       </form>
+      {nsec && (
+        <div className="mt-8">
+          <h2>My Nostr Account</h2>
+          <Button
+            className="mt-2"
+            variant="outline"
+            onClick={() => {
+              prompt("Copy and save your secret key somewhere safe", nsec);
+            }}
+          >
+            Save private key
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

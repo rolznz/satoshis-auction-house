@@ -1,9 +1,7 @@
 import { toast } from "sonner";
 
 import { useAppStore } from "@/lib/hooks/useAppStore";
-import { nip19 } from "nostr-tools";
 import type { WindowNostr } from "nostr-tools/nip07";
-import { hexToBytes } from "nostr-tools/utils";
 
 declare global {
   interface Window {
@@ -41,24 +39,6 @@ export async function login() {
     const { token } = await response.json();
     useAppStore.getState().login(token);
     toast("Logged in successfully");
-
-    // check for a newly-created nostr login account
-    const nostrLoginAccountsJSON = localStorage.getItem(
-      "__nostrlogin_accounts"
-    );
-    if (nostrLoginAccountsJSON) {
-      const accounts = JSON.parse(nostrLoginAccountsJSON) as [
-        { pubkey: string; sk: string; name: string; authMethod: string }
-      ];
-      if (accounts.length === 1) {
-        if (accounts[0].authMethod === "local") {
-          prompt(
-            "please copy and save your secret key before continuing",
-            nip19.nsecEncode(hexToBytes(accounts[0].sk))
-          );
-        }
-      }
-    }
 
     return true;
   } catch (error) {
