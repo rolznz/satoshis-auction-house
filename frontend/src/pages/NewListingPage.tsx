@@ -1,3 +1,4 @@
+import FormattedFiatAmount from "@/components/FormattedFiatAmount";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -151,6 +152,9 @@ export function NewListingPage() {
               value={startingBid}
               onChange={(e) => setStartingBid(e.target.value)}
             />
+            {startingBid && (
+              <FormattedFiatAmount amount={parseInt(startingBid)} />
+            )}
             <FieldDescription>
               Ensure your item is sold for a price equal or higher than this
               value
@@ -186,6 +190,9 @@ export function NewListingPage() {
                   value={minimumBidAbsolute}
                   onChange={(e) => setMinimumBidAbsolute(e.target.value)}
                 />
+                {minimumBidAbsolute && (
+                  <FormattedFiatAmount amount={parseInt(minimumBidAbsolute)} />
+                )}
                 <FieldDescription>
                   Each bid must be at least this amount of sats above the
                   previous bid

@@ -1,3 +1,4 @@
+import FormattedFiatAmount from "@/components/FormattedFiatAmount";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,8 +181,11 @@ export function ListingPageInternal({
         </CardHeader>
         <CardContent className="flex justify-between items-center">
           <CardDescription>
-            <span className="font-mono text-4xl">{listing.currentPrice}</span>{" "}
-            sats
+            <div>
+              <span className="font-mono text-4xl">{listing.currentPrice}</span>{" "}
+              sats
+            </div>
+            <FormattedFiatAmount amount={listing.currentPrice} />
           </CardDescription>
           <CardDescription>
             <span className="font-mono">{listing.bids.length}</span> bids
@@ -510,27 +514,31 @@ function BidItem({
       </ItemMedia>
       <ItemContent>
         <ItemTitle className="flex justify-between items-center w-full">
-          <span>
+          <div className="flex items-center justify-center gap-2">
             <a
               href={`https://nostr.com/${nip19.npubEncode(bid.bidderPubkey)}`}
               target="_blank"
             >
               {bidderNostrProfile?.name || "Satoshi Rabbit"}
-            </a>{" "}
-            ⚡{" "}
+            </a>
+            {leading && <Badge>Leading</Badge>}
+            {winner && <Badge>Winner</Badge>}
+          </div>
+          <div>
             <span className="font-mono text-lg">
               {new Intl.NumberFormat().format(bid.amount)}
             </span>{" "}
-            sats
-          </span>
-          {leading && <Badge>Leading</Badge>}
-          {winner && <Badge>Winner</Badge>}
+            sats ⚡
+          </div>
         </ItemTitle>
         {bid.comment && <ItemDescription>{bid.comment}</ItemDescription>}
-        <ItemDescription>
-          {formatDistance(bid.createdAt, new Date(), {
-            addSuffix: true,
-          })}
+        <ItemDescription className="flex justify-between items-center w-full">
+          <span>
+            {formatDistance(bid.createdAt, new Date(), {
+              addSuffix: true,
+            })}
+          </span>
+          <FormattedFiatAmount amount={bid.amount} className="inline" />
         </ItemDescription>
       </ItemContent>
     </Item>

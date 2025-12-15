@@ -1,3 +1,4 @@
+import FormattedFiatAmount from "@/components/FormattedFiatAmount";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,15 +90,21 @@ function ListingCard({ listing }: { listing: Listing }) {
             {listing.description || "No description provided"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex justify-between items-center">
+        <CardContent className="flex justify-between items-start">
           <CardDescription>
-            <span className="font-mono">
-              {new Intl.NumberFormat().format(listing.currentPrice)}
-            </span>{" "}
-            sats
+            <div>
+              <span className="font-mono text-xl">
+                {new Intl.NumberFormat().format(listing.currentPrice)}
+              </span>{" "}
+              sats
+            </div>
+            <div>
+              <FormattedFiatAmount amount={listing.currentPrice} />
+            </div>
           </CardDescription>
           <CardDescription>
-            <span className="font-mono">{listing.bids.length}</span> bids
+            <span className="font-mono text-xl">{listing.bids.length}</span>{" "}
+            bids
           </CardDescription>
         </CardContent>
         {listing.endsAt && listing.endsAt > Date.now() && (
