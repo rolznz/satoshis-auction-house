@@ -48,7 +48,7 @@ export function HomePage() {
           </div>
         </div>
       )}
-      {upcomingListings && (
+      {!!upcomingListings?.length && (
         <>
           <h1 className="mt-8 font-semibold text-xl">Upcoming Listings</h1>
           <div className="w-full flex flex-wrap p-4 gap-4 items-center justify-center">
@@ -58,7 +58,7 @@ export function HomePage() {
           </div>
         </>
       )}
-      {pastListings && (
+      {!!pastListings?.length && (
         <>
           <h1 className="mt-8 font-semibold text-xl">Past Listings</h1>
           <div className="w-full flex flex-wrap p-4 gap-4 items-center justify-center">
