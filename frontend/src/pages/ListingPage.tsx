@@ -382,13 +382,26 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
       </Card>
       <div className="flex-1 flex flex-col gap-2">
         {listing.bids.map((bid, index) => (
-          <BidItem key={bid.id} bid={bid} leading={index === 0} />
+          <BidItem
+            key={bid.id}
+            bid={bid}
+            leading={index === 0 && !listing.endedAt}
+            winner={index === 0 && !!listing.endedAt}
+          />
         ))}
       </div>
     </div>
   );
 }
-function BidItem({ bid, leading }: { bid: Bid; leading: boolean }) {
+function BidItem({
+  bid,
+  leading,
+  winner,
+}: {
+  bid: Bid;
+  leading: boolean;
+  winner: boolean;
+}) {
   const bidderNostrProfile = useNostrProfile(bid.bidderPubkey);
 
   return (
@@ -421,6 +434,7 @@ function BidItem({ bid, leading }: { bid: Bid; leading: boolean }) {
             sats
           </span>
           {leading && <Badge>Leading</Badge>}
+          {winner && <Badge>Winner</Badge>}
         </ItemTitle>
         {bid.comment && <ItemDescription>{bid.comment}</ItemDescription>}
         <ItemDescription>
