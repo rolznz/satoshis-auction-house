@@ -6,6 +6,10 @@ const fetchSettings = {
   refreshInterval: 10_000, // 10 seconds
 };
 
-export function useListing(id: string) {
-  return useSWR<Listing>(`/api/listings/${id}`, loggedInFetcher, fetchSettings);
+export function useListing(id: string, claimPreimage?: string) {
+  return useSWR<Listing>(
+    `/api/listings/${id}?claimPreimage=${claimPreimage}`,
+    loggedInFetcher,
+    fetchSettings
+  );
 }

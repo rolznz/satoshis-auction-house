@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   Item,
+  ItemActions,
   ItemContent,
   ItemDescription,
   ItemMedia,
@@ -42,13 +43,25 @@ import { toast } from "sonner";
 
 export function ListingPage() {
   const { id } = useParams() as { id: string };
-  const { data: listing } = useListing(id);
+  const [claimPreimage, setClaimPreimage] = React.useState("");
+  const { data: listing } = useListing(id, claimPreimage);
   if (!listing) {
     return null;
   }
-  return <ListingPageInternal listing={listing} />;
+  return (
+    <ListingPageInternal
+      listing={listing}
+      setClaimPreimage={setClaimPreimage}
+    />
+  );
 }
-export function ListingPageInternal({ listing }: { listing: Listing }) {
+export function ListingPageInternal({
+  listing,
+  setClaimPreimage,
+}: {
+  listing: Listing;
+  setClaimPreimage: (preimage: string) => void;
+}) {
   const token = useAppStore((store) => store.token);
 
   const [bidAmount, setBidAmount] = React.useState("");
@@ -262,7 +275,7 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
               )}
             {(listing.endedAt ||
               (listing.endsAt && listing.endsAt < Date.now())) && (
-              <div>
+              <div className="w-full">
                 <Button disabled>Auction Ended</Button>
                 {listing.winnerPubkey && (
                   <>
@@ -270,6 +283,8 @@ export function ListingPageInternal({ listing }: { listing: Listing }) {
                       <Winner
                         winnerPubkey={listing.winnerPubkey}
                         bid={listing.bids[0]}
+                        hasPin={!!listing.pin}
+                        setClaimPreimage={setClaimPreimage}
                       />
                     </p>
 
@@ -458,12 +473,23 @@ function BidItem({
   );
 }
 
-function Winner({ winnerPubkey, bid }: { winnerPubkey: string; bid: Bid }) {
+function Winner({
+  winnerPubkey,
+  bid,
+  hasPin,
+  setClaimPreimage,
+}: {
+  winnerPubkey: string;
+  bid: Bid;
+  hasPin: boolean;
+  setClaimPreimage: (preimage: string) => void;
+}) {
+  const isLoggedIn = !!useAppStore((store) => store.token);
   const winnerNostrProfile = useNostrProfile(winnerPubkey);
   return (
-    <div className="mt-4">
+    <div className="mt-4 w-full">
       <h2 className="font-semibold">Winner</h2>
-      <Item variant="outline">
+      <Item variant="outline" className="w-full">
         <ItemMedia>
           <Avatar className="size-10">
             <AvatarImage
@@ -497,6 +523,26 @@ function Winner({ winnerPubkey, bid }: { winnerPubkey: string; bid: Bid }) {
             })}
           </ItemDescription>
         </ItemContent>
+        {!isLoggedIn && !hasPin && (
+          <ItemActions>
+            <Button size="sm">Login to claim</Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const preimage = prompt(
+                  "Enter your payment preimage from your lightning wallet"
+                );
+                if (!preimage) {
+                  return;
+                }
+                setClaimPreimage(preimage);
+              }}
+            >
+              Claim with preimage
+            </Button>
+          </ItemActions>
+        )}
       </Item>
     </div>
   );

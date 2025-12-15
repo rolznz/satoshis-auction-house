@@ -177,7 +177,10 @@ export async function listingRoutes(
       }
     }
   );
-  fastify.get<{ Params: { id: string } }>("/:id", async (request, reply) => {
+  fastify.get<{
+    Params: { id: string };
+    Querystring: { claimPreimage?: string };
+  }>("/:id", async (request, reply) => {
     try {
       let loggedInPubkey: string | undefined;
       try {
@@ -206,7 +209,9 @@ export async function listingRoutes(
         },
       });
 
-      return reply.send(mapListing(listing, loggedInPubkey));
+      return reply.send(
+        mapListing(listing, loggedInPubkey, request.query.claimPreimage)
+      );
     } catch (error: any) {
       fastify.log.error(error, `Error fetching listing`);
 
@@ -337,12 +342,15 @@ function mapListing(
       };
     };
   }>,
-  loggedInPubkey: string | undefined
+  loggedInPubkey: string | undefined,
+  claimPreimage?: string
 ) {
   const showPin =
-    loggedInPubkey &&
-    (loggedInPubkey === listing.seller.pubkey ||
-      loggedInPubkey === listing.winner?.pubkey);
+    (loggedInPubkey &&
+      (loggedInPubkey === listing.seller.pubkey ||
+        loggedInPubkey === listing.winner?.pubkey)) ||
+    (claimPreimage &&
+      claimPreimage === listing.bids.find((bid) => bid.settled)?.preimage);
 
   let nextBidAmount = listing.startingBid;
   const heldBid = listing.bids.find((bid) => bid.held);
