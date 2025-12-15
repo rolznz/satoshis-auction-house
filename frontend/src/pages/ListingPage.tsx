@@ -87,7 +87,9 @@ export function ListingPageInternal({
   const [bidDrawerOpen, setBidDrawerOpen] = React.useState(false);
   const [creatingBid, setCreatingBid] = React.useState(false);
   const [placedBidId, setPlacedBidId] = React.useState("");
-  const [lastBidId, setLastBidId] = React.useState("");
+  const [lastBidId, setLastBidId] = React.useState(
+    localStorage.getItem("last_bid_" + listing.id) || ""
+  );
   const [setPaidFunction, setSetPaidFunction] =
     React.useState<(sendPaymentResponse: SendPaymentResponse) => void>();
 
@@ -105,7 +107,8 @@ export function ListingPageInternal({
       return;
     }
     const newBidId = listing.bids[0]?.id;
-    if (lastBidId && newBidId !== lastBidId) {
+    if (lastBidId && newBidId && newBidId !== lastBidId) {
+      localStorage.setItem("last_bid_" + listing.id, newBidId);
       toast("New bid!", {
         description: listing.bids[0].amount + " sats",
       });

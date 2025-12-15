@@ -6,6 +6,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useListing } from "@/lib/hooks/useListing";
 import { useListings } from "@/lib/hooks/useListings";
 import { ListingPageInternal } from "@/pages/ListingPage";
 import React, { useState } from "react";
@@ -71,12 +72,19 @@ function SlideshowPageInternal({
         {keywordListings.length}
       </p>
       <CountdownTimer index={currentIndex} duration={duration} />
-      <ListingPageInternal
-        listing={keywordListings[currentIndex % keywordListings.length]}
-        slideshow
+      <SlideshowListing
+        id={keywordListings[currentIndex % keywordListings.length].id}
       />
     </>
   );
+}
+
+function SlideshowListing({ id }: { id: string }) {
+  const { data: listing } = useListing(id);
+  if (!listing) {
+    return <p>Loading listing...</p>;
+  }
+  return <ListingPageInternal listing={listing} slideshow />;
 }
 
 function CountdownTimer({
