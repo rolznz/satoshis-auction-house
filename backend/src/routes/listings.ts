@@ -314,16 +314,6 @@ function mapListing(
     (loggedInPubkey === listing.seller.pubkey ||
       loggedInPubkey === listing.winner?.pubkey);
 
-  let endsInMinutes: number | undefined;
-  let endsAt =
-    (listing.endsAt
-      ? listing.endsAt.getTime()
-      : listing.bids.find((bid) => bid.held)?.settleDeadline?.getTime()) ||
-    undefined;
-  if (endsAt) {
-    endsInMinutes = Math.ceil((endsAt - Date.now()) / 1000 / 60);
-  }
-
   let nextBidAmount = listing.startingBid;
   const heldBid = listing.bids.find((bid) => bid.held);
   if (heldBid) {
@@ -333,6 +323,19 @@ function mapListing(
         heldBid.amount * (1 + (listing.minimumBidPercentage ?? 100) / 100)
       )
     );
+  }
+
+  const endsAtOptions = [
+    ...(listing.endsAt ? [listing.endsAt.getTime()] : []),
+    ...(heldBid?.settleDeadline ? [heldBid.settleDeadline.getTime()] : []),
+  ];
+  const endsAt: number | undefined = endsAtOptions.length
+    ? Math.min(...endsAtOptions)
+    : undefined;
+
+  let endsInMinutes: number | undefined;
+  if (endsAt) {
+    endsInMinutes = Math.ceil((endsAt - Date.now()) / 1000 / 60);
   }
 
   return {
@@ -353,6 +356,7 @@ function mapListing(
     startsAt: listing.startsAt,
     endedAt: listing.endedAt,
     endsAt,
+    hasFixedEnd: !!listing.endsAt,
     endsAtBlock: heldBid?.settleDeadlineBlocks,
     endsInMinutes,
     public: listing.public,
