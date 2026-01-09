@@ -3,7 +3,7 @@ import { SimplePool } from "nostr-tools/pool";
 
 const pool = new SimplePool();
 
-// TODO: which relays should be used?
+// TODO: we need to use the user's relays rather than a hardcoded list
 const relays = ["wss://relay.damus.io", "wss://nos.lol"];
 
 const getPromises: Record<string, Promise<void>> = {};

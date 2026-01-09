@@ -16,6 +16,8 @@ Rather than treating the HOLD invoice maximum time of a few hours as a limitatio
 
 Places it could be used: Live streams, conferences, meetups, etc.
 
+There is a small risk that the invoice is not settled if multiple blocks are mined in a short period of time, if there is no fixed end date for a listing and low activity. This is currently not handled by Satoshi's Auction House. The winner and seller will need to co-ordinate to complete the payment.
+
 ## Development
 
 ### Frontend
@@ -33,5 +35,5 @@ cd backend
 cp .env.example .env
 yarn install
 yarn prisma migrate dev
-yarn start
+yarn dev
 ```

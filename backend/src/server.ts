@@ -4,7 +4,8 @@ import Fastify from "fastify";
 import path from "path";
 import { PrismaClient } from "./generated/prisma/client";
 import { NWCConnectionManager } from "./lib/NWCConnectionManager";
-import { getSettleDeadlineFromCurrentBlockHeight } from "./lib/utils";
+import { getSettleDeadlineDateFromCurrentBlockHeight } from "./lib/utils";
+import { bidRoutes } from "./routes/bids";
 import { listingRoutes } from "./routes/listings";
 import { userRoutes } from "./routes/users";
 
@@ -41,6 +42,11 @@ fastify.register(listingRoutes, {
   connectionManager,
 });
 
+fastify.register(bidRoutes, {
+  prefix: "/api/bids",
+  prisma,
+});
+
 // Fallback route to serve index.html for client-side routing
 fastify.setNotFoundHandler((request, reply) => {
   // Check if the request is not for an API endpoint
@@ -51,6 +57,7 @@ fastify.setNotFoundHandler((request, reply) => {
   }
 });
 
+let lastBlockHeight = 0;
 const start = async () => {
   try {
     fastify.log.info("Starting NWC subscriptions");
@@ -65,12 +72,9 @@ const start = async () => {
     fastify.log.info("Monitoring listings...");
     (async () => {
       // check for leading bids that have expired and end the listings
-      for (let i = 0; ; i++) {
-        if (i > 0) {
-          // don't sleep on first run
-          await new Promise((resolve) => setTimeout(resolve, 60_000));
-        }
-
+      while (true) {
+        // check listings every 10 seconds to reduce risk that we settle too late
+        await new Promise((resolve) => setTimeout(resolve, 10_000));
         let blockHeight = 0;
         try {
           let blockHeightResponse = await fetch(
@@ -83,8 +87,15 @@ const start = async () => {
             );
 
             if (!blockHeightResponse.ok) {
-              console.error("Failed to get block height from blockstream.info");
-              continue;
+              console.error("Failed to get block height from blockstream");
+              blockHeightResponse = await fetch(
+                "https://electrs.getalbypro.com/blocks/tip/height"
+              );
+
+              if (!blockHeightResponse.ok) {
+                console.error("Failed to get block height from Alby");
+                continue;
+              }
             }
           }
           const blockHeightText = await blockHeightResponse.text();
@@ -100,6 +111,10 @@ const start = async () => {
         } catch (error) {
           console.error("failed to fetch block height", error);
           continue;
+        }
+        if (blockHeight !== lastBlockHeight) {
+          console.log("New block", { block_height: blockHeight });
+          lastBlockHeight = blockHeight;
         }
         connectionManager.setBlockHeight(blockHeight);
 
@@ -132,19 +147,21 @@ const start = async () => {
           let settleDeadline = heldBid.settleDeadline;
           // update settle deadline
           if (heldBid.settleDeadlineBlocks) {
-            settleDeadline = getSettleDeadlineFromCurrentBlockHeight(
+            settleDeadline = getSettleDeadlineDateFromCurrentBlockHeight(
               heldBid.settleDeadlineBlocks,
               blockHeight
             );
 
-            await prisma.bid.update({
-              where: {
-                id: heldBid.id,
-              },
-              data: {
-                settleDeadline,
-              },
-            });
+            if (settleDeadline.getTime() > Date.now()) {
+              await prisma.bid.update({
+                where: {
+                  id: heldBid.id,
+                },
+                data: {
+                  settleDeadline,
+                },
+              });
+            }
           }
 
           if (settleDeadline.getTime() > Date.now()) {
@@ -197,9 +214,22 @@ const start = async () => {
           }
 
           try {
-            await connection.client.settleHoldInvoice({
-              preimage: heldBid.preimage,
-            });
+            let settledHoldInvoice = false;
+            for (let i = 0; i < 10; i++) {
+              try {
+                await connection.client.settleHoldInvoice({
+                  preimage: heldBid.preimage,
+                });
+                settledHoldInvoice = true;
+                break;
+              } catch (error) {
+                console.error("Failed to settle hold invoice", {
+                  error,
+                  attempt: i,
+                  bid_id: heldBid.id,
+                });
+              }
+            }
 
             await prisma.listing.update({
               where: {
@@ -210,13 +240,12 @@ const start = async () => {
                 winnerId: heldBid.bidderId,
               },
             });
-
             await prisma.bid.update({
               where: {
                 id: heldBid.id,
               },
               data: {
-                settled: true,
+                settled: settledHoldInvoice,
                 held: false,
               },
             });

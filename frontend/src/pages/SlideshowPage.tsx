@@ -46,7 +46,6 @@ function SlideshowPageInternal({
   duration: number;
   future: boolean;
 }) {
-  // TODO: filter by keyword serverside
   const [currentIndex, setCurrentIndex] = React.useState(0);
 
   React.useEffect(() => {
@@ -58,15 +57,21 @@ function SlideshowPageInternal({
     };
   }, [duration]);
 
-  const { data: activeListings } = useListings({ future });
+  // TODO: filter by keyword serverside
+  const { data: futureListings } = useListings({ future: true });
+  const { data: activeListings } = useListings();
+  const allListings = React.useMemo(
+    () => [...(activeListings || []), ...(future ? futureListings || [] : [])],
+    [activeListings, future, futureListings]
+  );
   const keywordListings = React.useMemo(
     () =>
-      activeListings?.filter(
+      allListings?.filter(
         (listing) =>
           listing.title.toLowerCase().includes(keyword.toLowerCase()) ||
           listing.description?.toLowerCase().includes(keyword.toLowerCase())
       ),
-    [activeListings, keyword]
+    [allListings, keyword]
   );
   if (!keywordListings) {
     return <p>Loading...</p>;
@@ -81,7 +86,9 @@ function SlideshowPageInternal({
         Listing {(currentIndex % keywordListings.length) + 1} /{" "}
         {keywordListings.length}
       </p>
-      <CountdownTimer index={currentIndex} duration={duration} />
+      {keywordListings.length > 1 && (
+        <CountdownTimer index={currentIndex} duration={duration} />
+      )}
       <SlideshowListing
         id={keywordListings[currentIndex % keywordListings.length].id}
       />

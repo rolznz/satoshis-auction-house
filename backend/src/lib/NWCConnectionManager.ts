@@ -1,6 +1,6 @@
 import { Nip47Notification, NWCClient } from "@getalby/sdk";
 import { PrismaClient } from "../generated/prisma";
-import { getSettleDeadlineFromCurrentBlockHeight } from "./utils";
+import { getSettleDeadlineDateFromCurrentBlockHeight } from "./utils";
 
 export class NWCConnectionManager {
   private _connections: Record<
@@ -41,6 +41,7 @@ export class NWCConnectionManager {
       nostrWalletConnectUrl: receiveOnlyConnectionSecret,
     });
 
+    // TODO: move logic to another file
     const onNotification = async (notification: Nip47Notification) => {
       while (!this._blockHeight) {
         console.error("received notification while not ready yet");
@@ -71,6 +72,19 @@ export class NWCConnectionManager {
           console.error("Cancelled bid due to no settle deadline", {
             id: bid.id,
           });
+          await this._prisma.bid.update({
+            where: {
+              id: bid.id,
+            },
+            include: {
+              listing: true,
+            },
+            data: {
+              held: false,
+              errorMessage: "no settle deadline",
+            },
+          });
+
           return;
         }
 
@@ -80,6 +94,18 @@ export class NWCConnectionManager {
           });
           console.info("Cancelled bid after auction ended", {
             bid_id: bid.id,
+          });
+          await this._prisma.bid.update({
+            where: {
+              id: bid.id,
+            },
+            include: {
+              listing: true,
+            },
+            data: {
+              held: false,
+              errorMessage: "auction ended",
+            },
           });
           return;
         }
@@ -92,21 +118,52 @@ export class NWCConnectionManager {
           console.info("Cancelled bid after auction ended", {
             bid_id: bid.id,
           });
+          await this._prisma.bid.update({
+            where: {
+              id: bid.id,
+            },
+            include: {
+              listing: true,
+            },
+            data: {
+              held: false,
+              errorMessage: "auction ended",
+            },
+          });
           return;
         }
 
-        const settleDeadline = getSettleDeadlineFromCurrentBlockHeight(
+        const settleDeadlineBlocks =
+          notification.notification.settle_deadline - this._blockHeight;
+        const settleDeadline = getSettleDeadlineDateFromCurrentBlockHeight(
           notification.notification.settle_deadline,
           this._blockHeight
         );
 
-        const ONE_HOUR = 60 * 60 * 1000;
-        if (settleDeadline.getTime() - Date.now() < ONE_HOUR) {
+        // TODO: make this configurable
+        const minSettleDeadlineBlocks = 6;
+        if (settleDeadlineBlocks < minSettleDeadlineBlocks) {
           await client.cancelHoldInvoice({
             payment_hash: bid.paymentHash,
           });
           console.error("Bid has too short settle deadline", {
             bid_id: bid.id,
+            settle_deadline_blocks:
+              notification.notification.settle_deadline - this._blockHeight,
+            settle_deadline: settleDeadline.getTime(),
+          });
+          await this._prisma.bid.update({
+            where: {
+              id: bid.id,
+            },
+            include: {
+              listing: true,
+            },
+            data: {
+              held: false,
+              errorMessage:
+                "settle deadline is too short. Try a different wallet",
+            },
           });
           return;
         }
@@ -178,10 +235,17 @@ export class NWCConnectionManager {
           },
         });
         for (const lowerBidToCancel of lowerBidsToCancel) {
-          await client.cancelHoldInvoice({
-            payment_hash: lowerBidToCancel.paymentHash,
-          });
-          console.info("Cancelled lower bid", lowerBidToCancel.amount);
+          try {
+            await client.cancelHoldInvoice({
+              payment_hash: lowerBidToCancel.paymentHash,
+            });
+            console.info("Cancelled lower bid", lowerBidToCancel.amount);
+          } catch (error) {
+            console.error("failed to cancel hold invoice", {
+              bid_id: bid.id,
+              error,
+            });
+          }
         }
       } catch (error) {
         console.error("Failed to update bid for notification", {

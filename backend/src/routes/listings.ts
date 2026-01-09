@@ -7,6 +7,7 @@ import {
 import { Prisma, PrismaClient } from "../generated/prisma/client";
 import { authenticate } from "../lib/authenticate";
 import { NWCConnectionManager } from "../lib/NWCConnectionManager";
+import { mapBid } from "./bids";
 
 type NewListing = {
   title: string;
@@ -409,17 +410,7 @@ function mapListing(
     endsInMinutes,
     startsInMinutes,
     public: listing.public,
-    bids: listing.bids.map((bid) => {
-      return {
-        id: bid.id,
-        bidderPubkey: bid.bidder.pubkey,
-        createdAt: bid.createdAt.getTime(),
-        updatedAt: bid.updatedAt.getTime(),
-        amount: bid.amount,
-        settled: bid.settled,
-        comment: bid.comment,
-      };
-    }),
+    bids: listing.bids.map(mapBid),
     ...(showPin
       ? {
           pin: listing.pin,

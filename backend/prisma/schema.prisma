@@ -64,4 +64,5 @@ model Bid {
   held                 Boolean
   settled              Boolean
   comment              String?
+  errorMessage         String?
 }
