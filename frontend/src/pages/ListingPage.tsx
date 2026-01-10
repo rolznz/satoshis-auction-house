@@ -177,7 +177,7 @@ export function ListingPageInternal({
   return (
     <div className="p-4 flex flex-1 flex-wrap max-lg:flex-col w-full gap-4">
       <Card className={cn("flex-1 rounded-md", slideshow && "pb-0")}>
-        <CardContent className="flex items-start justify-between gap-4">
+        <CardContent className="flex items-start justify-between gap-4 flex-wrap">
           <img
             src={listing.imageUrl || "/icon.svg"}
             className="w-full lg:w-64 h-64 object-cover"
