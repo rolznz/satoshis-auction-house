@@ -32,6 +32,7 @@ export type Listing = {
   pin?: number;
   sellerContactInfo?: string;
   winnerContactInfo?: string;
+  instantBidInvoice?: string;
 };
 
 export type NostrProfile = { name?: string; picture?: string };

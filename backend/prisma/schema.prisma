@@ -35,6 +35,7 @@ model Listing {
   sellerId             String
   winner               User?     @relation("WinnerListings", fields: [winnerId], references: [id])
   winnerId             String?
+  instantBidInvoice    String?
   startingBid          Int
   minimumBidAbsolute   Int?
   minimumBidPercentage Int?

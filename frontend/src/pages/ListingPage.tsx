@@ -39,7 +39,12 @@ import { cn } from "@/lib/utils";
 import { closeModal, launchPaymentModal } from "@getalby/bitcoin-connect-react";
 import { SendPaymentResponse } from "@webbtc/webln-types";
 import { formatDistance } from "date-fns";
-import { AlertTriangleIcon, Loader2Icon } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  Loader2Icon,
+  PlusIcon,
+  ZapIcon,
+} from "lucide-react";
 import {
   finalizeEvent,
   generateSecretKey,
@@ -172,21 +177,45 @@ export function ListingPageInternal({
   return (
     <div className="p-4 flex flex-1 flex-wrap max-lg:flex-col w-full gap-4">
       <Card className={cn("flex-1 rounded-md", slideshow && "pb-0")}>
-        <CardContent className="flex items-start justify-between">
+        <CardContent className="flex items-start justify-between gap-4">
           <img
             src={listing.imageUrl || "/icon.svg"}
             className="w-full lg:w-64 h-64 object-cover"
           />
           {slideshow && (
-            <a href={`${window.origin}/listings/${listing.id}`} target="_blank">
-              <div className="flex flex-col items-center justify-center">
-                Join the auction!
-                <QRCodeSVG
-                  value={`${window.origin}/listings/${listing.id}`}
-                  className="w-32 h-32 object-cover"
-                />
-              </div>
-            </a>
+            <>
+              <a
+                href={`${window.origin}/listings/${listing.id}`}
+                target="_blank"
+              >
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <PlusIcon className="size-6 bg-blue-300 p-1 text-white rounded-full" />
+                    <span className="font-medium text-sm">
+                      Join the auction!
+                    </span>
+                  </div>
+                  <QRCodeSVG
+                    value={`${window.origin}/listings/${listing.id}`}
+                    className="size-40"
+                    level="Q"
+                  />
+                </div>
+              </a>
+              {listing.instantBidInvoice && (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <ZapIcon className="size-6 bg-yellow-400 p-1 text-white rounded-full" />
+                    <span className="font-medium text-sm">Instant bid</span>
+                  </div>
+                  <QRCodeSVG
+                    value={`lightning:${listing.instantBidInvoice}`}
+                    className="size-40"
+                    level="L"
+                  />
+                </div>
+              )}
+            </>
           )}
         </CardContent>
         <CardHeader>

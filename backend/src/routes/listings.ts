@@ -4,6 +4,7 @@ import {
   FastifyReply,
   FastifyRequest,
 } from "fastify";
+import { generateSecretKey, getPublicKey } from "nostr-tools";
 import { Prisma, PrismaClient } from "../generated/prisma/client";
 import { authenticate } from "../lib/authenticate";
 import { NWCConnectionManager } from "../lib/NWCConnectionManager";
@@ -26,14 +27,14 @@ type NewBid = {
   comment?: string;
 };
 
-interface UserRoutesOptions extends FastifyPluginOptions {
+interface ListingRoutesOptions extends FastifyPluginOptions {
   prisma: PrismaClient;
   connectionManager: NWCConnectionManager;
 }
 
 export async function listingRoutes(
   fastify: FastifyInstance,
-  options: UserRoutesOptions
+  options: ListingRoutesOptions
 ) {
   fastify.post<{ Body: NewListing }>(
     "/",
@@ -213,6 +214,41 @@ export async function listingRoutes(
         },
       });
 
+      if (
+        !listing.instantBidInvoice ||
+        listing.bids.some(
+          (bid) => bid.paid && bid.invoice === listing.instantBidInvoice
+        )
+      ) {
+        // generate a new anonymous bid and invoice
+        const nextBidAmount = getNextBidAmount(listing);
+
+        const secretKey = generateSecretKey();
+        const publicKey = getPublicKey(secretKey);
+
+        const bidder = await options.prisma.user.create({
+          data: {
+            pubkey: publicKey,
+          },
+        });
+
+        const createdBid = await createNewBid(
+          listing,
+          bidder.id,
+          nextBidAmount,
+          undefined,
+          options
+        );
+        await options.prisma.listing.update({
+          where: {
+            id: listing.id,
+          },
+          data: {
+            instantBidInvoice: createdBid.invoice,
+          },
+        });
+      }
+
       return reply.send(
         mapListing(listing, loggedInPubkey, request.query.claimPreimage)
       );
@@ -249,17 +285,7 @@ export async function listingRoutes(
             .send({ message: "Auction has not started yet" });
         }
 
-        // TODO: extract duplicated code
-        let nextBidAmount = listing.startingBid;
-        const heldBid = listing.bids.find((bid) => bid.held);
-        if (heldBid) {
-          nextBidAmount = Math.max(
-            heldBid.amount + Math.max(1, listing.minimumBidAbsolute || 0),
-            Math.ceil(
-              heldBid.amount * (1 + (listing.minimumBidPercentage ?? 100) / 100)
-            )
-          );
-        }
+        const nextBidAmount = getNextBidAmount(listing);
 
         if (request.body.amount < nextBidAmount) {
           return reply.code(400).send({ message: "Bid amount is too low" });
@@ -271,53 +297,13 @@ export async function listingRoutes(
           },
         });
 
-        const toHexString = (bytes: Uint8Array<ArrayBuffer>) =>
-          bytes.reduce(
-            (str, byte) => str + byte.toString(16).padStart(2, "0"),
-            ""
-          );
-
-        const preimageBytes = crypto.getRandomValues(new Uint8Array(32));
-        const preimage = toHexString(preimageBytes);
-
-        const hashBuffer = await crypto.subtle.digest("SHA-256", preimageBytes);
-        const paymentHashBytes = new Uint8Array(hashBuffer);
-        const paymentHash = toHexString(paymentHashBytes);
-
-        const receiveOnlyConnectionSecret =
-          listing.seller.receiveOnlyConnectionSecret;
-        if (!receiveOnlyConnectionSecret) {
-          throw new Error("Seller has not connected their wallet");
-        }
-        const client = options.connectionManager.getConnection(
-          receiveOnlyConnectionSecret
-        ).client;
-
-        const holdInvoiceResponse = await client.makeHoldInvoice({
-          amount: request.body.amount * 1000, // in millisats
-          description: `Satoshi's Auction House - ${listing.id}`,
-          payment_hash: paymentHash,
-          metadata: request.body.comment
-            ? {
-                comment: request.body.comment,
-              }
-            : undefined,
-        });
-
-        const createdBid = await options.prisma.bid.create({
-          data: {
-            amount: request.body.amount,
-            listingId: listing.id,
-            bidderId: bidder.id,
-            held: false,
-            paid: false,
-            settled: false,
-            invoice: holdInvoiceResponse.invoice,
-            preimage: preimage,
-            paymentHash: holdInvoiceResponse.payment_hash,
-            comment: request.body.comment,
-          },
-        });
+        const createdBid = await createNewBid(
+          listing,
+          bidder.id,
+          request.body.amount,
+          request.body.comment,
+          options
+        );
 
         return {
           id: createdBid.id,
@@ -356,16 +342,8 @@ function mapListing(
     (claimPreimage &&
       claimPreimage === listing.bids.find((bid) => bid.settled)?.preimage);
 
-  let nextBidAmount = listing.startingBid;
   const heldBid = listing.bids.find((bid) => bid.held);
-  if (heldBid) {
-    nextBidAmount = Math.max(
-      heldBid.amount + Math.max(1, listing.minimumBidAbsolute || 0),
-      Math.ceil(
-        heldBid.amount * (1 + (listing.minimumBidPercentage ?? 100) / 100)
-      )
-    );
-  }
+  const nextBidAmount = getNextBidAmount(listing);
 
   const endsAtOptions = [
     ...(listing.endsAt ? [listing.endsAt.getTime()] : []),
@@ -410,6 +388,7 @@ function mapListing(
     endsInMinutes,
     startsInMinutes,
     public: listing.public,
+    instantBidInvoice: listing.instantBidInvoice,
     bids: listing.bids.map(mapBid),
     ...(showPin
       ? {
@@ -425,4 +404,81 @@ function generatePin() {
   const arr = new Uint32Array(1);
   crypto.getRandomValues(arr);
   return String(arr[0] % 1_000_000).padStart(6, "0");
+}
+
+function getNextBidAmount(
+  listing: Prisma.ListingGetPayload<{
+    include: {
+      bids: {};
+    };
+  }>
+) {
+  const heldBid = listing.bids.find((bid) => bid.held);
+  let nextBidAmount = listing.startingBid;
+  if (heldBid) {
+    nextBidAmount = Math.max(
+      heldBid.amount + Math.max(1, listing.minimumBidAbsolute || 0),
+      Math.ceil(
+        heldBid.amount * (1 + (listing.minimumBidPercentage ?? 100) / 100)
+      )
+    );
+  }
+  return nextBidAmount;
+}
+
+async function createNewBid(
+  listing: Prisma.ListingGetPayload<{
+    include: {
+      seller: true;
+    };
+  }>,
+  bidderId: string,
+  amount: number,
+  comment: string | undefined,
+  options: ListingRoutesOptions
+) {
+  const toHexString = (bytes: Uint8Array<ArrayBuffer>) =>
+    bytes.reduce((str, byte) => str + byte.toString(16).padStart(2, "0"), "");
+
+  const preimageBytes = crypto.getRandomValues(new Uint8Array(32));
+  const preimage = toHexString(preimageBytes);
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", preimageBytes);
+  const paymentHashBytes = new Uint8Array(hashBuffer);
+  const paymentHash = toHexString(paymentHashBytes);
+
+  const receiveOnlyConnectionSecret =
+    listing.seller.receiveOnlyConnectionSecret;
+  if (!receiveOnlyConnectionSecret) {
+    throw new Error("Seller has not connected their wallet");
+  }
+  const client = options.connectionManager.getConnection(
+    receiveOnlyConnectionSecret
+  ).client;
+
+  const holdInvoiceResponse = await client.makeHoldInvoice({
+    amount: amount * 1000, // in millisats
+    description: `Satoshi's Auction House: PAYMENT WILL BE FROZEN UNTIL AUCTION ENDS OR YOU ARE OUTBID - ${listing.id}`,
+    payment_hash: paymentHash,
+    metadata: comment
+      ? {
+          comment: comment,
+        }
+      : undefined,
+  });
+
+  return options.prisma.bid.create({
+    data: {
+      amount: amount,
+      listingId: listing.id,
+      bidderId: bidderId,
+      held: false,
+      paid: false,
+      settled: false,
+      invoice: holdInvoiceResponse.invoice,
+      preimage: preimage,
+      paymentHash: holdInvoiceResponse.payment_hash,
+      comment: comment,
+    },
+  });
 }

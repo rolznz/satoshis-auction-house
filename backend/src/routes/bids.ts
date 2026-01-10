@@ -1,13 +1,13 @@
 import { FastifyInstance, FastifyPluginOptions } from "fastify";
 import { Prisma, PrismaClient } from "../generated/prisma/client";
 
-interface UserRoutesOptions extends FastifyPluginOptions {
+interface BidRoutesOptions extends FastifyPluginOptions {
   prisma: PrismaClient;
 }
 
 export async function bidRoutes(
   fastify: FastifyInstance,
-  options: UserRoutesOptions
+  options: BidRoutesOptions
 ) {
   fastify.get<{
     Params: { id: string };
